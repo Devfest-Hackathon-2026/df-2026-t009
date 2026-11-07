@@ -1,7 +1,7 @@
 // ここだけ の Service Worker。
 // 画面（HTML・JS・CSS・アイコン）だけをキャッシュし、オフラインでも起動できるようにする。
 // Firebase や Google Maps への通信はキャッシュしない（常に最新を取る）。
-const CACHE = 'kokodake-v2'
+const CACHE = 'kokodake-v3'
 const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (e) => {
@@ -23,7 +23,7 @@ self.addEventListener('fetch', (e) => {
   // ページを開くときは、まずネットから。つながらなければキャッシュ。
   if (e.request.mode === 'navigate') {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-cache' })
         .then((res) => {
           const copy = res.clone()
           caches.open(CACHE).then((c) => c.put('/index.html', copy))

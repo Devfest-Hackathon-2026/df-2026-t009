@@ -301,7 +301,7 @@ export function PostSheet({
                 className={radius === r ? 'on' : ''}
                 onClick={() => setRadius(r)}
               >
-                {r}m
+                {r >= 1000 ? `${r / 1000}km` : `${r}m`}
               </button>
             ))}
           </div>

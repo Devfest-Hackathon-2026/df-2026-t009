@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { distanceMeters, formatDistance } from '../geo'
 import { timeAgo } from '../time'
 import type { Drop } from '../types'
@@ -16,6 +16,7 @@ export function FeedView({
   openedIds,
   onPick,
   onAuthor,
+  top,
 }: {
   drops: Drop[]
   me: Me
@@ -23,6 +24,7 @@ export function FeedView({
   openedIds: Set<string>
   onPick: (id: string) => void
   onAuthor: (uid: string) => void
+  top?: ReactNode
 }) {
   const [sort, setSort] = useState<'new' | 'near'>('near')
   const [index, setIndex] = useState(0)
@@ -40,8 +42,10 @@ export function FeedView({
 
   return (
     <div className="page feed">
+      {top}
       <header className="page__head">
-        <h2>まわりの予告</h2>
+        <h2 className="sr-only">まわりの予告</h2>
+        <span className="muted small">本文は近づいた人だけ</span>
         <div className="segmented segmented--small">
           <button className={sort === 'near' ? 'on' : ''} onClick={() => (setSort('near'), setIndex(0))}>
             近い順
@@ -53,7 +57,7 @@ export function FeedView({
       </header>
 
       {items.length === 0 ? (
-        <p className="empty">まだ投稿がありません。最初のビーコンを置いてみよう。</p>
+        <p className="empty">まだ投稿がありません。最初の投稿を置いてみよう。</p>
       ) : (
         <>
           <div
@@ -69,14 +73,14 @@ export function FeedView({
           >
             {items.slice(i, i + 3).map(({ d, dist }, k) => {
               const state = pinState(d, uid, openedIds, me.position, me.accuracy)
-              const top = k === 0
+              const isTop = k === 0
               return (
                 <article
                   key={d.id}
-                  className={`card st-${state} ${top ? 'card--top' : ''}`}
+                  className={`card st-${state} ${isTop ? "card--top" : ""}`}
                   style={{
                     zIndex: 10 - k,
-                    transform: top
+                    transform: isTop
                       ? `translateX(${dx}px) rotate(${dx / 25}deg)`
                       : `translateY(${k * 14}px) scale(${1 - k * 0.05})`,
                     opacity: 1 - k * 0.25,
@@ -106,7 +110,7 @@ export function FeedView({
                       <span>💬 {d.commentCount ?? 0}</span>
                       {dist !== null && <span>📍 {formatDistance(dist)}</span>}
                     </div>
-                    {top && (
+                    {isTop && (
                       <button className="btn btn--primary btn--wide" onClick={() => onPick(d.id)}>
                         地図で見る
                       </button>

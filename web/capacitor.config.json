@@ -1,0 +1,12 @@
+{
+  "appId": "app.kokodake.walk",
+  "appName": "ここだけ",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "hostname": "kokodake-t009.web.app"
+  },
+  "android": {
+    "backgroundColor": "#ffffff"
+  }
+}

@@ -3,7 +3,7 @@ import { getFirestore, FieldValue, Timestamp, type Transaction, type WriteBatch 
 import { getStorage } from "firebase-admin/storage";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
-import { ALLOWED_RADII, distanceMeters, isValidLatLng, isWithinRadius } from "./geo";
+import { ALLOWED_RADII, cellOf, distanceMeters, isValidLatLng, isWithinRadius } from "./geo";
 
 initializeApp();
 // 呼び出し可否は関数の中で Firebase Auth を確かめる。Cloud Run の手前では誰でも呼べるようにする（callable の標準）。
@@ -100,7 +100,7 @@ export const createDrop = onCall(async (req) => {
   const authorName = cleanText(d.authorName, LIMITS.name, "ニックネーム", true);
   const radius = Number(d.radius);
   if (!(ALLOWED_RADII as readonly number[]).includes(radius)) {
-    throw new HttpsError("invalid-argument", "範囲は 100m・300m・500m から選んでください");
+    throw new HttpsError("invalid-argument", "範囲は 100m・300m・500m・1km から選んでください");
   }
   if (!isValidLatLng(d.lat, d.lng)) throw new HttpsError("invalid-argument", "場所が不正です");
 
@@ -265,6 +265,116 @@ export const deleteDrop = onCall(async (req) => {
   const batch = db.batch();
   batch.delete(db.doc(`users/${uid}/placed/${dropId}`));
   bumpProfile(batch, uid, { placed: -1 });
+  await batch.commit();
+  return { ok: true };
+});
+
+/**
+ * イベント（巡りルート）を作る。公開されている投稿を、巡る順に並べる。
+ * 誰の投稿でも入れられる（自分のおすすめルートを作れる）。中身は各投稿のルールどおり、近づかないと読めない。
+ */
+export const createEvent = onCall(async (req) => {
+  const uid = requireUid(req.auth);
+  const d = req.data ?? {};
+  const title = cleanText(d.title, 40, "イベント名", true);
+  const description = cleanText(d.description, 300, "説明", false);
+  const authorName = cleanName(d.name);
+  if (!Array.isArray(d.dropIds) || d.dropIds.length < 2 || d.dropIds.length > 20) {
+    throw new HttpsError("invalid-argument", "巡る場所は 2〜20 か所選んでください");
+  }
+  const dropIds = [...new Set(d.dropIds.map(cleanDropId))];
+  if (dropIds.length !== d.dropIds.length) throw new HttpsError("invalid-argument", "同じ場所が重なっています");
+  const startAt = d.startAt ? Timestamp.fromMillis(Number(d.startAt)) : null;
+  const endAt = d.endAt ? Timestamp.fromMillis(Number(d.endAt)) : null;
+  if ((startAt && isNaN(startAt.toMillis())) || (endAt && isNaN(endAt.toMillis()))) {
+    throw new HttpsError("invalid-argument", "日時が不正です");
+  }
+  if (startAt && endAt && endAt.toMillis() < startAt.toMillis()) {
+    throw new HttpsError("invalid-argument", "終わりは始まりより後にしてください");
+  }
+
+  const snaps = await db.getAll(...dropIds.map((id) => db.doc(`drops/${id}`)));
+  const stops = snaps.map((s, i) => {
+    if (!s.exists) throw new HttpsError("not-found", `${i + 1} 番目の場所が見つかりません`);
+    const x = s.data()!;
+    return { id: s.id, teaser: x.teaser, lat: x.lat, lng: x.lng, radius: x.radius };
+  });
+
+  const ref = db.collection("events").doc();
+  const batch = db.batch();
+  batch.set(ref, {
+    title,
+    description,
+    authorId: uid,
+    authorName,
+    stops,
+    startAt,
+    endAt,
+    participantCount: 1,
+    createdAt: Timestamp.now(),
+  });
+  batch.set(db.doc(`users/${uid}/events/${ref.id}`), { joinedAt: Timestamp.now(), title });
+  await batch.commit();
+  return { id: ref.id };
+});
+
+/** イベントに参加する／やめる。 */
+export const joinEvent = onCall(async (req) => {
+  const uid = requireUid(req.auth);
+  const eventId = cleanDropId(req.data?.eventId);
+  const join = req.data?.join !== false;
+  return db.runTransaction(async (tx) => {
+    const eventRef = db.doc(`events/${eventId}`);
+    const mineRef = db.doc(`users/${uid}/events/${eventId}`);
+    const [ev, mine] = await Promise.all([tx.get(eventRef), tx.get(mineRef)]);
+    if (!ev.exists) throw new HttpsError("not-found", "イベントが見つかりません");
+    if (join && !mine.exists) {
+      tx.set(mineRef, { joinedAt: Timestamp.now(), title: ev.data()!.title });
+      tx.update(eventRef, { participantCount: FieldValue.increment(1) });
+    } else if (!join && mine.exists) {
+      tx.delete(mineRef);
+      tx.update(eventRef, { participantCount: FieldValue.increment(-1) });
+    }
+    return { joined: join };
+  });
+});
+
+/**
+ * みんなの踏み跡。共有をオンにした人の移動を、約 33m のマス目ごとの回数として足していく。
+ * 誰が通ったかは残さない。1 回に送れるのは 60 点まで。
+ */
+export const addFootprints = onCall(async (req) => {
+  requireUid(req.auth);
+  const points = req.data?.points;
+  if (!Array.isArray(points) || points.length === 0 || points.length > 60) {
+    throw new HttpsError("invalid-argument", "点の数が不正です");
+  }
+  const cells = new Map<string, { lat: number; lng: number }>();
+  for (const p of points) {
+    if (!isValidLatLng(p?.lat, p?.lng)) continue;
+    const c = cellOf(p.lat, p.lng);
+    cells.set(c.id, { lat: c.lat, lng: c.lng });
+  }
+  const batch = db.batch();
+  const now = Timestamp.now();
+  for (const [id, c] of cells) {
+    batch.set(db.doc(`footprints/${id}`), { ...c, count: FieldValue.increment(1), updatedAt: now }, { merge: true });
+  }
+  await batch.commit();
+  return { cells: cells.size };
+});
+
+/** 自分が作ったイベントを消す（参加者の記録は、それぞれの端末からは見えなくなるだけ）。 */
+export const deleteEvent = onCall(async (req) => {
+  const uid = requireUid(req.auth);
+  const eventId = cleanDropId(req.data?.eventId);
+  const ref = db.doc(`events/${eventId}`);
+  const snap = await ref.get();
+  if (!snap.exists) return { ok: true };
+  if (snap.data()!.authorId !== uid) throw new HttpsError("permission-denied", "自分のイベントだけ消せます");
+  const batch = db.batch();
+  batch.delete(ref);
+  batch.delete(db.doc(`users/${uid}/events/${eventId}`));
   await batch.commit();
   return { ok: true };
 });

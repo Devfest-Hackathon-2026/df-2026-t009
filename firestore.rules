@@ -26,6 +26,18 @@ service cloud.firestore {
       }
     }
 
+    // イベント（巡りルート）。誰でも見られる。
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // みんなの踏み跡（マス目ごとの回数だけ。誰が通ったかは持たない）。
+    match /footprints/{cellId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
     // 公開プロフィール（名前と数字だけ）。
     match /profiles/{uid} {
       allow read: if true;

@@ -77,3 +77,20 @@ export function levelOf(p: Profile | null | undefined) {
   }
   return { xp, level, progress: rest / need, toNext: need - rest }
 }
+
+export type EventStop = { id: string; teaser: string; lat: number; lng: number; radius: number }
+
+export type KokoEvent = {
+  id: string
+  title: string
+  description: string
+  authorId: string
+  authorName: string
+  stops: EventStop[]
+  startAt: Timestamp | null
+  endAt: Timestamp | null
+  participantCount: number
+  createdAt: Timestamp | null
+}
+
+export type Footprint = { id: string; lat: number; lng: number; count: number }

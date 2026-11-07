@@ -1,7 +1,7 @@
 {
   "name": "ここだけ — 近づくと、ひらく。",
   "short_name": "ここだけ",
-  "description": "誰かがその場所に残した投稿を、近づいたときだけ読める散歩SNS",
+  "description": "誰かがその場所に残した投稿を、近づいたときだけ読める、おでかけSNS",
   "lang": "ja",
   "start_url": "/",
   "scope": "/",

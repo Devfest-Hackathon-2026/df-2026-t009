@@ -23,7 +23,7 @@ export function Welcome({ onDone }: { onDone: (name: string) => void }) {
         </ol>
         <label className="field">
           <span>ニックネーム</span>
-          <input value={name} maxLength={20} placeholder="例：さんぽ係" onChange={(e) => setName(e.target.value)} />
+          <input value={name} maxLength={20} placeholder="例：たびびと" onChange={(e) => setName(e.target.value)} />
         </label>
         <button className="btn btn--primary btn--wide" disabled={!name.trim()}>
           はじめる

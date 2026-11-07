@@ -7,7 +7,7 @@ const GLYPH: Record<PinState, string> = { mine: '★', opened: '✓', inrange: '
  * 地図に立つ投稿。ストーリーのリングのように、未開封はグラデーション、開封済みはグレー。
  * 範囲に入ると脈打ち、選ぶと予告が吹き出しで出る。
  */
-export function Beacon({ drop, state, selected }: { drop: Drop; state: PinState; selected: boolean }) {
+export function Beacon({ drop, state, selected, order }: { drop: Drop; state: PinState; selected: boolean; order?: number }) {
   return (
     <div className={`beacon beacon--${state} ${selected ? 'beacon--selected' : ''}`}>
       {(selected || state === 'inrange') && <span className="beacon__label">{drop.teaser}</span>}
@@ -16,6 +16,7 @@ export function Beacon({ drop, state, selected }: { drop: Drop; state: PinState;
           <span className="beacon__glyph">{GLYPH[state]}</span>
         </span>
       </span>
+      {order !== undefined && <span className="beacon__order">{order}</span>}
       <span className="beacon__tip" />
     </div>
   )

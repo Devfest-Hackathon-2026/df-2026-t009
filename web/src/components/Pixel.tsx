@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 /** 文字で描いたドット絵を、マス目の div で表示する。 */
 function PixelArt({ art, palette, size }: { art: string[]; palette: Record<string, string>; size: number }) {
@@ -62,17 +62,33 @@ const CHEST_OPEN = [
 
 const STAR = ['..Y..', '.YgY.', 'YgggY', '.YgY.', '..Y..']
 
-/** はじめてひらいたときの、ドット絵の宝箱の演出。 */
-export function PixelUnlock({ onDone }: { onDone: () => void }) {
+/** ドット絵の宝箱の演出。はじめてひらいたときと、イベントを制覇したときに使う。 */
+export function PixelUnlock({
+  onDone,
+  title = "ひらいた！",
+  sub = "+30 EXP",
+  message = "この場所に来た人だけが読める投稿を見つけた。",
+  before = "……なにかある。",
+  long = false,
+}: {
+  onDone: () => void
+  title?: string
+  sub?: string
+  message?: string
+  before?: string
+  long?: boolean
+}) {
   const [open, setOpen] = useState(false)
+  const done = useRef(onDone)
+  done.current = onDone
   useEffect(() => {
     const a = setTimeout(() => setOpen(true), 450)
-    const b = setTimeout(onDone, 1900)
+    const b = setTimeout(() => done.current(), long ? 3200 : 1900)
     return () => {
       clearTimeout(a)
       clearTimeout(b)
     }
-  }, [onDone])
+  }, [long])
   return (
     <div className="pixel-scene" onClick={onDone}>
       <div className={`pixel-chest ${open ? 'pixel-chest--open' : ''}`}>
@@ -86,11 +102,11 @@ export function PixelUnlock({ onDone }: { onDone: () => void }) {
           ))}
       </div>
       <div className={`pixel-text ${open ? 'pixel-text--show' : ''}`}>
-        ひらいた！
-        <small>+30 EXP</small>
+        {title}
+        <small>{sub}</small>
       </div>
       <div className="pixel-window">
-        {open ? 'この場所に来た人だけが読める投稿を見つけた。' : '……なにかある。'}
+        {open ? message : before}
       </div>
     </div>
   )

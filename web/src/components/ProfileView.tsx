@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { clock, dayKey, dayLabel, timeAgo } from '../time'
+import { formatDistance } from '../geo'
 import { levelOf, type Drop, type OpenedEntry, type PlacedEntry, type Profile } from '../types'
+import { trailLength, type Trails } from '../useTrail'
+import { TrailSketch } from './TrailSketch'
 
 type LogItem = {
   id: string
@@ -50,7 +53,7 @@ function LevelCard({ name, profile, me }: { name: string; profile: Profile | nul
   )
 }
 
-/** 1日分のさんぽを、ストーリーのように1つずつ再生する。 */
+/** 1日分のおでかけを、ストーリーのように1つずつ再生する。 */
 function StoryPlayer({ label, items, onClose }: { label: string; items: LogItem[]; onClose: () => void }) {
   const [i, setI] = useState(0)
   useEffect(() => {
@@ -68,7 +71,7 @@ function StoryPlayer({ label, items, onClose }: { label: string; items: LogItem[
       <button className="story__close" onClick={onClose} aria-label="とじる">
         ×
       </button>
-      <p className="story__day">{label}のさんぽ</p>
+      <p className="story__day">{label}のおでかけ</p>
       <div key={it.id} className={`story__slide story__slide--${it.kind}`}>
         <span className="story__time">{clock(it.at)}</span>
         <span className="story__kind">{it.kind === 'opened' ? 'UNLOCK' : 'DROP'}</span>
@@ -89,6 +92,10 @@ export function ProfileView({
   opened,
   placed,
   theirDrops,
+  trails = {},
+  share = false,
+  onShare,
+  onClearTrails,
   onPick,
   onBack,
 }: {
@@ -98,6 +105,10 @@ export function ProfileView({
   opened: OpenedEntry[]
   placed: PlacedEntry[]
   theirDrops: Drop[]
+  trails?: Trails
+  share?: boolean
+  onShare?: (v: boolean) => void
+  onClearTrails?: () => void
   onPick: (id: string) => void
   onBack?: () => void
 }) {
@@ -116,7 +127,7 @@ export function ProfileView({
         id: `p-${p.id}`,
         kind: 'placed' as const,
         teaser: p.teaser,
-        sub: `半径 ${p.radius}m のビーコンを置いた`,
+        sub: `半径 ${p.radius >= 1000 ? `${p.radius / 1000}km` : `${p.radius}m`} の投稿を置いた`,
         at: p.createdAt,
       })),
     ]
@@ -125,14 +136,16 @@ export function ProfileView({
       const k = dayKey(it.at)
       map.set(k, [...(map.get(k) ?? []), it])
     }
+    for (const k of Object.keys(trails)) if (!map.has(k) && trails[k].length > 1) map.set(k, [])
     return [...map.entries()]
       .sort((a, b) => (a[0] < b[0] ? 1 : -1))
       .map(([k, list]) => ({
         key: k,
         label: dayLabel(k),
+        trail: trails[k] ?? [],
         items: list.sort((a, b) => (a.at?.toDate().getTime() ?? 0) - (b.at?.toDate().getTime() ?? 0)),
       }))
-  }, [opened, placed])
+  }, [opened, placed, trails])
 
   const playingDay = days.find((d) => d.key === playing)
 
@@ -147,9 +160,9 @@ export function ProfileView({
 
       {isMe ? (
         <>
-          <h3 className="section-title">さんぽログ</h3>
+          <h3 className="section-title">おでかけログ</h3>
           {days.length === 0 ? (
-            <p className="empty">まだ記録がありません。地図の「？」に近づいてひらいてみよう。</p>
+            <p className="empty">まだ記録がありません。出かけて、地図の「？」に近づいてひらいてみよう。</p>
           ) : (
             days.map((day) => (
               <section key={day.key} className="day">
@@ -157,15 +170,16 @@ export function ProfileView({
                   <div>
                     <h4>{day.label}</h4>
                     <span className="muted small">
-                      ひらいた {day.items.filter((x) => x.kind === 'opened').length} ・ 置いた{' '}
-                      {day.items.filter((x) => x.kind === 'placed').length}
+                      {formatDistance(trailLength(day.trail))} 移動 ・ ひらいた {day.items.filter((x) => x.kind === "opened").length} ・ 置いた{" "}
+                      {day.items.filter((x) => x.kind === "placed").length}
                     </span>
                   </div>
-                  <button className="btn btn--primary btn--small" onClick={() => setPlaying(day.key)}>
+                  <button className="btn btn--primary btn--small" disabled={day.items.length === 0} onClick={() => setPlaying(day.key)}>
                     ▶ ふりかえる
                   </button>
                 </header>
                 <div className="day__strip">
+                  {day.trail.length > 1 && <TrailSketch points={day.trail} />}
                   {day.items.map((it) => (
                     <button
                       key={it.id}
@@ -181,10 +195,26 @@ export function ProfileView({
               </section>
             ))
           )}
+
+          <h3 className="section-title">足あとの設定</h3>
+          <div className="settings">
+            <label className="toggle">
+              <span>
+                <b>みんなの踏み跡に加える</b>
+                <small className="muted">
+                  移動した場所を、約30m四方のマス目ごとの回数としてだけ共有します。誰が通ったかは残りません。自宅のまわりなどでは、オフのままにしてください。
+                </small>
+              </span>
+              <input type="checkbox" checked={share} onChange={(e) => onShare?.(e.target.checked)} />
+            </label>
+            <button className="btn btn--ghost btn--small" onClick={() => onClearTrails?.()}>
+              この端末の足あとを消す
+            </button>
+          </div>
         </>
       ) : (
         <>
-          <h3 className="section-title">{name} が置いたビーコン</h3>
+          <h3 className="section-title">{name} が置いた投稿</h3>
           {theirDrops.length === 0 ? (
             <p className="empty">まだ投稿がありません。</p>
           ) : (

@@ -1,6 +1,7 @@
 import type { LatLng } from '../geo'
 import type { Me } from '../useLocation'
-import type { Drop } from '../types'
+import type { TrailPoint } from '../useTrail'
+import type { Drop, EventStop, Footprint } from '../types'
 
 export type MapViewProps = {
   drops: Drop[]
@@ -14,4 +15,10 @@ export type MapViewProps = {
   onTapLocation: (p: LatLng) => void
   recenterSignal: number
   initial?: string
+  /** 今日の自分の足あと */
+  trail?: TrailPoint[]
+  /** みんなの踏み跡（マス目ごとの回数） */
+  footprints?: Footprint[]
+  /** 表示中のイベントの巡る順 */
+  route?: EventStop[]
 }

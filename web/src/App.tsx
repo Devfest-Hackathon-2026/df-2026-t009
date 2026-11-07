@@ -1,6 +1,8 @@
 import { ref, uploadBytes } from 'firebase/storage'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { EventCreate, EventDetail, EventList, type EventDraft } from './components/EventViews'
 import { FeedView } from './components/FeedView'
+import { PixelUnlock } from './components/Pixel'
 import { IconFeed, IconHeart, IconLocate, IconMap, IconPlus } from './components/Icons'
 import { GoogleMapView, hasMapsKey } from './components/GoogleMapView'
 import { NoticeView } from './components/NoticeView'
@@ -12,7 +14,9 @@ import { Welcome } from './components/Welcome'
 import {
   callAddComment,
   callCreateDrop,
+  callCreateEvent,
   callDeleteDrop,
+  callJoinEvent,
   callOpenDrop,
   callToggleLike,
   storage,
@@ -26,14 +30,19 @@ import {
   useAnonymousUser,
   useComments,
   useDrops,
+  useEvents,
+  useFootprints,
+  useJoinedEventIds,
   useLikedIds,
   useMyLog,
   useNotices,
   useProfile,
 } from './useData'
+import { useTrail } from './useTrail'
 
 const NAME_KEY = 'kokodake.name'
 const SEEN_KEY = 'kokodake.noticesSeen'
+const COMPLETE_KEY = 'kokodake.completedEvents'
 
 function readStore(key: string) {
   try {
@@ -89,6 +98,32 @@ export default function App() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [lastSeen, setLastSeen] = useState(() => Number(readStore(SEEN_KEY)) || 0)
+  const [discover, setDiscover] = useState<'drops' | 'events'>('drops')
+  const [eventPage, setEventPage] = useState<{ kind: 'detail'; id: string } | { kind: 'create' } | null>(null)
+  const [activeEventId, setActiveEventId] = useState<string | null>(null)
+  const [celebrate, setCelebrate] = useState<string | null>(null)
+
+  const events = useEvents()
+  const joinedEventIds = useJoinedEventIds(uid)
+  const { trails, today: trailToday, share, setShare, clearTrails } = useTrail(me.position)
+  const footprints = useFootprints(me.position ?? center)
+
+  const activeEvent = events.find((e) => e.id === activeEventId) ?? null
+  const route = useMemo(() => activeEvent?.stops, [activeEvent])
+  const activeDone = activeEvent ? activeEvent.stops.filter((s) => openedIds.has(s.id)).length : 0
+
+  // 参加中・表示中のイベントを、ぜんぶひらいたら1回だけお祝いする
+  useEffect(() => {
+    for (const ev of events) {
+      if (!(joinedEventIds.has(ev.id) || ev.id === activeEventId)) continue
+      if (ev.stops.length === 0 || !ev.stops.every((s) => openedIds.has(s.id))) continue
+      const done = readStore(COMPLETE_KEY).split(',')
+      if (done.includes(ev.id)) continue
+      writeStore(COMPLETE_KEY, [...done.filter(Boolean), ev.id].join(','))
+      setCelebrate(ev.title)
+      break
+    }
+  }, [events, joinedEventIds, openedIds, activeEventId])
 
   const comments = useComments(openedView?.dropId ?? null, !!openedView)
   const selected = drops.find((d) => d.id === selectedId) ?? null
@@ -121,6 +156,7 @@ export default function App() {
   const goTo = (v: View) => {
     setView(v)
     setProfileUid(null)
+    setEventPage(null)
     setSelectedId(null)
     if (v === 'notices') {
       const now = Date.now()
@@ -138,8 +174,43 @@ export default function App() {
   const showAuthor = (authorId: string) => {
     setOpenedView(null)
     setSelectedId(null)
+    setEventPage(null)
     if (authorId === uid) return goTo('me')
     setProfileUid(authorId)
+  }
+
+  const createEvent = async (d: EventDraft) => {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await callCreateEvent({ ...d, name })
+      setEventPage({ kind: 'detail', id: res.data.id })
+      flash('イベントを作りました')
+    } catch (e) {
+      setError(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const joinEvent = async (eventId: string, join: boolean) => {
+    setBusy(true)
+    try {
+      await callJoinEvent({ eventId, join })
+      flash(join ? '参加しました。地図にルートが出ます' : '参加をやめました')
+      if (join) setActiveEventId(eventId)
+      else if (activeEventId === eventId) setActiveEventId(null)
+    } catch (e) {
+      flash(errorMessage(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const showRoute = (eventId: string) => {
+    setActiveEventId(eventId)
+    setEventPage(null)
+    goTo('map')
   }
 
   const openDrop = async (dropId: string) => {
@@ -155,7 +226,7 @@ export default function App() {
       })
       const r = res.data
       if (r.status === 'too_far') {
-        setError(`まだ遠いみたい（${formatDistance(r.distance)}）。半径 ${r.radius}m 以内まで近づいてね`)
+        setError(`まだ遠いみたい（${formatDistance(r.distance)}）。半径 ${formatDistance(r.radius)} 以内まで近づいてね`)
         return
       }
       setOpenedView({ dropId, body: r.body, photo: r.photo, firstTime: r.firstTime })
@@ -237,6 +308,9 @@ export default function App() {
     onTapLocation: setDemoPosition,
     recenterSignal: recenter,
     initial: [...name][0],
+    trail: trailToday,
+    footprints,
+    route,
   }
 
   if (!name) {
@@ -250,9 +324,21 @@ export default function App() {
     )
   }
 
-  const onMap = view === 'map' && !profileUid
+  const onMap = view === 'map' && !profileUid && !eventPage
   const nearestDrop = nearest ? drops.find((d) => d.id === nearest.id) : null
-  const tabOn = (v: View) => view === v && !profileUid
+  const tabOn = (v: View) => view === v && !profileUid && !eventPage
+  const shownEvent = eventPage?.kind === 'detail' ? events.find((e) => e.id === eventPage.id) : null
+
+  const discoverTabs = (
+    <div className="segmented discover-tabs">
+      <button className={discover === 'drops' ? 'on' : ''} onClick={() => setDiscover('drops')}>
+        まわりの予告
+      </button>
+      <button className={discover === 'events' ? 'on' : ''} onClick={() => setDiscover('events')}>
+        イベント
+      </button>
+    </div>
+  )
 
   return (
     <div className={`app ${onMap ? 'app--map' : ''}`}>
@@ -302,6 +388,25 @@ export default function App() {
                 <IconLocate />
               </button>
             )}
+            {activeEvent && !placing && (
+              <div className="route-chip">
+                <button className="route-chip__main" onClick={() => setEventPage({ kind: 'detail', id: activeEvent.id })}>
+                  <span className="route-chip__flag">🏁</span>
+                  <span className="route-chip__text">
+                    <b>{activeEvent.title}</b>
+                    <span className="route-chip__bar">
+                      <span style={{ width: `${(activeDone / activeEvent.stops.length) * 100}%` }} />
+                    </span>
+                  </span>
+                  <span className="route-chip__num">
+                    {activeDone}/{activeEvent.stops.length}
+                  </span>
+                </button>
+                <button className="route-chip__close" onClick={() => setActiveEventId(null)} aria-label="ルート表示をやめる">
+                  ×
+                </button>
+              </div>
+            )}
             {!placing && !selected && nearestDrop && nearest && (
               <button className="nearest" onClick={() => setSelectedId(nearestDrop.id)}>
                 <span className={`nearest__ring st-${pinState(nearestDrop, uid, openedIds, me.position, me.accuracy)}`}>
@@ -316,8 +421,31 @@ export default function App() {
             )}
           </>
         )}
-        {view === 'feed' && (
-          <FeedView drops={drops} me={me} uid={uid} openedIds={openedIds} onPick={pickDrop} onAuthor={showAuthor} />
+        {view === 'feed' && discover === 'drops' && (
+          <FeedView
+            drops={drops}
+            me={me}
+            uid={uid}
+            openedIds={openedIds}
+            onPick={pickDrop}
+            onAuthor={showAuthor}
+            top={discoverTabs}
+          />
+        )}
+        {view === 'feed' && discover === 'events' && (
+          <div className="page">
+            {discoverTabs}
+            <EventList
+              events={events}
+              joinedIds={joinedEventIds}
+              openedIds={openedIds}
+              onOpen={(id) => setEventPage({ kind: 'detail', id })}
+              onCreate={() => {
+                setError(null)
+                setEventPage({ kind: 'create' })
+              }}
+            />
+          </div>
         )}
         {view === 'notices' && <NoticeView notices={notices} lastSeen={lastSeen} onPick={pickDrop} />}
         {view === 'me' && (
@@ -328,8 +456,50 @@ export default function App() {
             opened={opened}
             placed={placed}
             theirDrops={[]}
+            trails={trails}
+            share={share}
+            onShare={setShare}
+            onClearTrails={clearTrails}
             onPick={pickDrop}
           />
+        )}
+        {eventPage && (
+          <div className="stage__cover">
+            {eventPage.kind === 'create' ? (
+              <EventCreate
+                drops={drops}
+                me={me}
+                busy={busy}
+                error={error}
+                onSubmit={createEvent}
+                onCancel={() => setEventPage(null)}
+              />
+            ) : shownEvent ? (
+              <EventDetail
+                ev={shownEvent}
+                me={me}
+                uid={uid}
+                joined={joinedEventIds.has(shownEvent.id)}
+                openedIds={openedIds}
+                busy={busy}
+                onJoin={(j) => joinEvent(shownEvent.id, j)}
+                onShowRoute={() => showRoute(shownEvent.id)}
+                onPickStop={(id) => {
+                  setActiveEventId(shownEvent.id)
+                  pickDrop(id)
+                }}
+                onAuthor={showAuthor}
+                onBack={() => setEventPage(null)}
+              />
+            ) : (
+              <div className="page">
+                <button className="back" onClick={() => setEventPage(null)}>
+                  ← もどる
+                </button>
+                <p className="empty">イベントを読み込んでいます…</p>
+              </div>
+            )}
+          </div>
         )}
         {profileUid && (
           <div className="stage__cover">
@@ -448,6 +618,17 @@ export default function App() {
             <span className={`tabbar__me ${tabOn('me') ? 'tabbar__me--on' : ''}`}>{[...name][0]}</span>
           </button>
         </nav>
+      )}
+
+      {celebrate && (
+        <PixelUnlock
+          title="COMPLETE!"
+          sub="イベント制覇"
+          message={`「${celebrate}」の場所を、ぜんぶひらいた。`}
+          before="……さいごの場所だ。"
+          long
+          onDone={() => setCelebrate(null)}
+        />
       )}
 
       {toast && <div className="toast">{toast}</div>}

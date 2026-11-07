@@ -30,3 +30,11 @@ test("座標の検証", () => {
   assert.equal(isValidLatLng("35", 139), false);
   assert.equal(isValidLatLng(NaN, 139), false);
 });
+
+test("近い2点は同じマス目、離れた2点は別のマス目", async () => {
+  const { cellOf } = await import("./geo");
+  assert.equal(cellOf(35.70881, 139.72221).id, cellOf(35.70885, 139.72225).id);
+  assert.notEqual(cellOf(35.7088, 139.7222).id, cellOf(35.7098, 139.7222).id);
+  const c = cellOf(35.7088, 139.7222);
+  assert.ok(Math.abs(c.lat - 35.7088) < 0.0003 && Math.abs(c.lng - 139.7222) < 0.0004);
+});

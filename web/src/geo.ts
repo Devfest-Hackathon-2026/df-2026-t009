@@ -1,6 +1,6 @@
 export type LatLng = { lat: number; lng: number }
 
-export const RADII = [100, 300, 500] as const
+export const RADII = [100, 300, 500, 1000] as const
 export const ACCURACY_ALLOWANCE = 30
 
 /** 早稲田大学 大隈講堂のあたり。GPS が使えないときとデモの初期位置。 */

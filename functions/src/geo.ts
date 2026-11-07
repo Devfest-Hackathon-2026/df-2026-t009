@@ -12,7 +12,17 @@ export function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: n
 /** GPS の誤差として許容する最大値（メートル）。 */
 export const MAX_ACCURACY_ALLOWANCE = 30;
 
-export const ALLOWED_RADII = [100, 300, 500] as const;
+export const ALLOWED_RADII = [100, 300, 500, 1000] as const;
+
+/** 踏み跡のマス目（約 33m 四方）。個人の道のりが特定されにくいよう、点ではなくマス目で数える。 */
+export const CELL_LAT = 0.0003;
+export const CELL_LNG = 0.0004;
+
+export function cellOf(lat: number, lng: number) {
+  const i = Math.floor(lat / CELL_LAT);
+  const j = Math.floor(lng / CELL_LNG);
+  return { id: `${i}_${j}`, lat: (i + 0.5) * CELL_LAT, lng: (j + 0.5) * CELL_LNG };
+}
 
 /**
  * 範囲内かどうか。端末が報告する精度（accuracy）を最大 30m まで差し引いて判定する。

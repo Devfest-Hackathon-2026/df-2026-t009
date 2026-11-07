@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ここだけ</string>
+    <string name="title_activity_main">ここだけ</string>
+    <string name="package_name">app.kokodake.walk</string>
+    <string name="custom_url_scheme">app.kokodake.walk</string>
+</resources>

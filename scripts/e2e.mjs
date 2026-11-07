@@ -68,6 +68,8 @@ const created = await call(A, 'createDrop', {
 })
 check('A が投稿できる', created.status === 200 && created.result?.id, JSON.stringify(created.error ?? ''))
 const id = created.result?.id
+const extraDrops = []
+let eventId
 
 try {
   const tooFar = await call(B, 'openDrop', { dropId: id, ...far, accuracy: 10, name: 'テストB' })
@@ -125,9 +127,44 @@ try {
   const unlike = await call(B, 'toggleLike', { dropId: id, name: 'テストB' })
   check('いいねを取り消せる', unlike.result?.liked === false)
 
+
+  // --- イベントと踏み跡 ---
+  const second = await call(A, 'createDrop', { teaser: '【自動テスト】2か所目', body: 'b', authorName: 'テストA', radius: 1000, lat: P.lat + 0.004, lng: P.lng })
+  check('1km の範囲で投稿できる', second.status === 200 && second.result?.id, JSON.stringify(second.error ?? ''))
+  extraDrops.push(second.result?.id)
+
+  const evBad = await call(A, 'createEvent', { title: 'x', dropIds: [id], name: 'テストA' })
+  check('1か所だけのイベントは作れない', evBad.error?.status === 'INVALID_ARGUMENT')
+
+  const ev = await call(A, 'createEvent', { title: '【自動テスト】イベント', description: 'd', dropIds: [id, second.result?.id], name: 'テストA' })
+  check('A がイベントを作れる', ev.status === 200 && ev.result?.id, JSON.stringify(ev.error ?? ''))
+  eventId = ev.result?.id
+
+  const join = await call(B, 'joinEvent', { eventId, join: true })
+  check('B がイベントに参加できる', join.result?.joined === true)
+  const evDoc = await get(C, `events/${eventId}`)
+  const ef = evDoc.body.fields ?? {}
+  check(
+    'イベントは誰でも読めて、参加者2人・2か所',
+    evDoc.status === 200 && ef.participantCount?.integerValue === '2' && ef.stops?.arrayValue?.values?.length === 2,
+  )
+  const evDelByB = await call(B, 'deleteEvent', { eventId })
+  check('B は A のイベントを消せない', evDelByB.error?.status === 'PERMISSION_DENIED', JSON.stringify(evDelByB))
+
+  const fpPoint = { lat: 35.70011, lng: 139.70011 } // 確認用の離れた地点
+  const fp = await call(B, 'addFootprints', { points: [fpPoint, { lat: 35.70012, lng: 139.70012 }] })
+  check('踏み跡を送れる（近い2点は1マスにまとまる）', fp.result?.cells === 1, JSON.stringify(fp.result ?? fp.error))
+  const fpBad = await call(B, 'addFootprints', { points: Array.from({ length: 61 }, () => fpPoint) })
+  check('一度に送れる点は60まで', fpBad.error?.status === 'INVALID_ARGUMENT')
+
   const delByB = await call(B, 'deleteDrop', { dropId: id })
   check('B は A の投稿を消せない', delByB.error?.status === 'PERMISSION_DENIED')
 } finally {
+  if (eventId) {
+    const evDel = await call(A, 'deleteEvent', { eventId })
+    check('A は自分のイベントを消せる', evDel.result?.ok === true)
+  }
+  for (const x of extraDrops.filter(Boolean)) await call(A, 'deleteDrop', { dropId: x })
   const del = await call(A, 'deleteDrop', { dropId: id })
   check('A は自分の投稿を消せる', del.result?.ok === true)
   const gone = await list(A, `drops/${id}/comments`)

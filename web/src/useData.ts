@@ -1,8 +1,9 @@
 import { onAuthStateChanged, signInAnonymously, type User } from 'firebase/auth'
-import { collection, doc, limit, onSnapshot, orderBy, query } from 'firebase/firestore'
+import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore'
 import { useEffect, useState } from 'react'
 import { auth, db } from './firebase'
-import type { Comment, Drop, Notice, OpenedEntry, PlacedEntry, Profile } from './types'
+import type { LatLng } from './geo'
+import type { Comment, Drop, Footprint, KokoEvent, Notice, OpenedEntry, PlacedEntry, Profile } from './types'
 
 export function useAnonymousUser() {
   const [user, setUser] = useState<User | null>(null)
@@ -80,4 +81,52 @@ export function useComments(dropId: string | null, enabled: boolean) {
     )
   }, [dropId, enabled])
   return comments
+}
+
+export function useEvents() {
+  const [events, setEvents] = useState<KokoEvent[]>([])
+  useEffect(
+    () =>
+      onSnapshot(
+        query(collection(db, 'events'), orderBy('createdAt', 'desc'), limit(100)),
+        (s) => setEvents(s.docs.map((d) => ({ id: d.id, ...d.data() }) as KokoEvent)),
+        () => setEvents([]),
+      ),
+    [],
+  )
+  return events
+}
+
+export function useJoinedEventIds(uid: string | undefined) {
+  const joined = useOwnCollection<{ id: string }>(uid, 'events', 'joinedAt')
+  return new Set(joined.map((j) => j.id))
+}
+
+/** 今いるあたり（緯度 ±0.02 度 ≒ 2km）の踏み跡。 */
+export function useFootprints(center: LatLng | null) {
+  const [cells, setCells] = useState<Footprint[]>([])
+  const latKey = center ? Math.round(center.lat * 100) : null
+  const lngKey = center ? Math.round(center.lng * 100) : null
+  useEffect(() => {
+    if (latKey === null || lngKey === null) return
+    const lat = latKey / 100
+    const lng = lngKey / 100
+    return onSnapshot(
+      query(
+        collection(db, 'footprints'),
+        where('lat', '>=', lat - 0.02),
+        where('lat', '<=', lat + 0.02),
+        orderBy('lat'),
+        limit(800),
+      ),
+      (s) =>
+        setCells(
+          s.docs
+            .map((d) => ({ id: d.id, ...d.data() }) as Footprint)
+            .filter((c) => Math.abs(c.lng - lng) < 0.025),
+        ),
+      () => setCells([]),
+    )
+  }, [latKey, lngKey])
+  return cells
 }

@@ -21,7 +21,7 @@ export function clock(ts: Ts) {
   return `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
-/** 1日は午前4時から翌午前4時まで（夜の散歩を同じ日にまとめる）。 */
+/** 1日は午前4時から翌午前4時まで（夜のおでかけを同じ日にまとめる）。 */
 export function dayKey(ts: Ts) {
   const d = toDate(ts) ?? new Date()
   const shifted = new Date(d.getTime() - 4 * 3600 * 1000)

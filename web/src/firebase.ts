@@ -55,3 +55,12 @@ export const callAddComment = httpsCallable<{ dropId: string; text: string; name
   'addComment',
 )
 export const callToggleLike = httpsCallable<{ dropId: string; name: string }, { liked: boolean }>(functions, 'toggleLike')
+export const callCreateEvent = httpsCallable<
+  { title: string; description: string; dropIds: string[]; startAt?: number; endAt?: number; name: string },
+  { id: string }
+>(functions, 'createEvent')
+export const callJoinEvent = httpsCallable<{ eventId: string; join: boolean }, { joined: boolean }>(functions, 'joinEvent')
+export const callAddFootprints = httpsCallable<{ points: { lat: number; lng: number }[] }, { cells: number }>(
+  functions,
+  'addFootprints',
+)

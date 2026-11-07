@@ -2,6 +2,7 @@ import { AdvancedMarker, APIProvider, ColorScheme, Map, useMap, type MapMouseEve
 import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_CENTER, type LatLng } from '../geo'
 import { Avatar, Beacon } from './Beacon'
+import { FootprintLayer, RouteLayer, TrailLayer } from './MapLayers'
 import type { MapViewProps } from './MapTypes'
 import { PIN_COLOR, pinState } from './pins'
 
@@ -58,6 +59,7 @@ function Camera({
 
 export function GoogleMapView(p: MapViewProps) {
   const myPos = p.me.position
+  const routeOrder = new globalThis.Map<string, number>((p.route ?? []).map((s, i) => [s.id, i + 1]))
   const [follow, setFollow] = useState(true)
 
   useEffect(() => {
@@ -98,6 +100,10 @@ export function GoogleMapView(p: MapViewProps) {
           focus={p.drops.find((d) => d.id === p.selectedId) ?? null}
         />
 
+        {p.footprints && <FootprintLayer cells={p.footprints} />}
+        {p.trail && <TrailLayer points={p.trail} />}
+        {p.route && <RouteLayer stops={p.route} />}
+
         {p.drops.map((d) => {
           const state = pinState(d, p.uid, p.openedIds, myPos, p.me.accuracy)
           const sel = d.id === p.selectedId
@@ -125,10 +131,10 @@ export function GoogleMapView(p: MapViewProps) {
             <AdvancedMarker
               key={d.id}
               position={d}
-              zIndex={sel ? 1000 : state === 'inrange' ? 500 : 10}
+              zIndex={sel ? 1000 : state === "inrange" ? 500 : routeOrder.has(d.id) ? 100 : 10}
               onClick={() => !p.placing && p.onSelect(d.id)}
             >
-              <Beacon drop={d} state={state} selected={sel} />
+              <Beacon drop={d} state={state} selected={sel} order={routeOrder.get(d.id)} />
             </AdvancedMarker>
           )
         })}
