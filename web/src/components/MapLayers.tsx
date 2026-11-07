@@ -21,7 +21,7 @@ export function TrailLayer({ points }: { points: TrailPoint[] }) {
     const lines: google.maps.Polyline[] = []
     for (const path of segments.filter((s) => s.length > 1)) {
       lines.push(
-        new google.maps.Polyline({ map, path, clickable: false, strokeColor: '#ffffff', strokeOpacity: 0.9, strokeWeight: 9, zIndex: 3 }),
+        new google.maps.Polyline({ map, path, clickable: false, strokeColor: '#fffdf9', strokeOpacity: 0.9, strokeWeight: 9, zIndex: 3 }),
         new google.maps.Polyline({
           map,
           path,
@@ -30,7 +30,7 @@ export function TrailLayer({ points }: { points: TrailPoint[] }) {
           zIndex: 4,
           icons: [
             {
-              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 2.6, fillColor: '#0095f6', fillOpacity: 1, strokeOpacity: 0 },
+              icon: { path: google.maps.SymbolPath.CIRCLE, scale: 2.6, fillColor: '#c9918b', fillOpacity: 1, strokeOpacity: 0 },
               offset: '0',
               repeat: '9px',
             },
@@ -57,7 +57,7 @@ export function FootprintLayer({ cells }: { cells: Footprint[] }) {
           radius: 13,
           clickable: false,
           strokeOpacity: 0,
-          fillColor: '#962fbf',
+          fillColor: '#a7b8a2',
           fillOpacity: 0.12 + 0.38 * Math.min(1, Math.log(c.count + 1) / Math.log(max + 1)),
           zIndex: 2,
         }),
@@ -81,9 +81,9 @@ export function RouteLayer({ stops }: { stops: EventStop[] }) {
       strokeOpacity: 0,
       zIndex: 6,
       icons: [
-        { icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: '#d62976', strokeWeight: 4, scale: 3 }, offset: '0', repeat: '14px' },
+        { icon: { path: 'M 0,-1 0,1', strokeOpacity: 1, strokeColor: '#8f7b70', strokeWeight: 4, scale: 3 }, offset: '0', repeat: '14px' },
         {
-          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3.5, fillColor: '#d62976', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5 },
+          icon: { path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW, scale: 3.5, fillColor: '#8f7b70', fillOpacity: 1, strokeColor: '#fff', strokeWeight: 1.5 },
           offset: '50%',
           repeat: '120px',
         },

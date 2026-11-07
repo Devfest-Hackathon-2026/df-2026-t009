@@ -145,7 +145,7 @@ export function GoogleMapView(p: MapViewProps) {
               <Circle
                 center={myPos}
                 radius={p.me.accuracy}
-                options={{ strokeOpacity: 0, fillColor: '#0095f6', fillOpacity: 0.12, zIndex: 2 }}
+                options={{ strokeOpacity: 0, fillColor: '#c9918b', fillOpacity: 0.12, zIndex: 2 }}
               />
             ) : null}
             <AdvancedMarker position={myPos} zIndex={2000}>

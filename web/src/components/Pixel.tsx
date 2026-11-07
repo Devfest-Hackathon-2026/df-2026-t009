@@ -19,13 +19,13 @@ function PixelArt({ art, palette, size }: { art: string[]; palette: Record<strin
 }
 
 const PALETTE = {
-  K: '#2b1a12', // ふち
-  B: '#9c5a2b', // 木
-  b: '#c47a3c', // 木の明るいところ
-  G: '#f5c542', // 金具
-  g: '#fff2a8', // 金具のひかり
-  L: '#fff6c8', // 中の光
-  Y: '#ffd84a',
+  K: '#6b5a52', // ふち
+  B: '#c9a68a', // 木
+  b: '#e0c3a8', // 木の明るいところ
+  G: '#d6a39c', // 金具
+  g: '#fbe9e4', // 金具のひかり
+  L: '#fff8ee', // 中の光
+  Y: '#f0c9c0',
 }
 
 const CHEST_CLOSED = [
