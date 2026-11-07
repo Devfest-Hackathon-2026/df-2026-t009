@@ -2,7 +2,7 @@
   "name": "kokodake",
   "private": true,
   "scripts": {
-    "setup": "npm install && npm --prefix web install && npm --prefix functions install",
+    "setup": "npm install && cd web && npm install && cd ../functions && npm install",
     "dev": "npm --prefix web run dev",
     "emulators": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions,storage",
     "test": "npm --prefix functions test",
