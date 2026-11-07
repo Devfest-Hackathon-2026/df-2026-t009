@@ -30,3 +30,14 @@ export const PIN_COLOR: Record<PinState, string> = {
   inrange: '#d4938c',
   locked: '#d6a39c',
 }
+
+const HOLO_COLOR: Record<PinState, string> = {
+  mine: '#e6f4f7',
+  opened: '#4b6b73',
+  inrange: '#ffb24a',
+  locked: '#7fe3ff',
+}
+
+export function pinColor(state: PinState, theme: 'holo' | 'milk' = 'holo') {
+  return theme === 'milk' ? PIN_COLOR[state] : HOLO_COLOR[state]
+}

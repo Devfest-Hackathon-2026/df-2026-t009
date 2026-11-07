@@ -1,0 +1,210 @@
+/* =====================================================================
+   HOLO テーマ（暗い測量図とホログラムの HUD）。<html data-theme="holo">
+   MILK テーマ（くすみカラー）は index.css の基本の見た目。
+   ===================================================================== */
+[data-theme='holo'] {
+  --bg: #05080a;
+  --bg-soft: #0a1114;
+  --ink: #e6f4f7;
+  --ink-soft: #7fa3ab;
+  --line: rgb(127 227 255 / 28%);
+  --line-soft: rgb(127 227 255 / 12%);
+  --cy: #7fe3ff;
+  --am: #ffb24a;
+  --panel: rgb(6 12 15 / 88%);
+  --hand: 'Barlow Condensed', 'Zen Kaku Gothic New', sans-serif;
+  --mono: 'Share Tech Mono', ui-monospace, monospace;
+  --grad: linear-gradient(90deg, #7fe3ff, #b6f1ff);
+  --shadow: 0 0 0 1px rgb(127 227 255 / 22%), 0 12px 30px rgb(0 0 0 / 60%);
+  --shadow-s: 0 0 0 1px rgb(127 227 255 / 18%);
+  color-scheme: dark;
+}
+[data-theme='holo'] body,
+[data-theme='holo'] .app { background: var(--bg); color: var(--ink); font-family: 'Zen Kaku Gothic New', sans-serif; font-weight: 400; }
+[data-theme='holo'] h2, [data-theme='holo'] h3, [data-theme='holo'] h4 { color: var(--ink); }
+[data-theme='holo'] .muted { color: var(--ink-soft); }
+
+/* 四隅のカギ括弧つきパネル */
+[data-theme='holo'] :is(.sheet, .letter, .dialog, .nearest, .placebar, .route-chip, .ev-card, .card, .welcome__steps, .lookpick__stage) {
+  background-color: var(--panel);
+  border-radius: 2px;
+  border: 1px solid var(--line-soft);
+  color: var(--ink);
+  background-image:
+    linear-gradient(var(--cy), var(--cy)), linear-gradient(var(--cy), var(--cy)),
+    linear-gradient(var(--cy), var(--cy)), linear-gradient(var(--cy), var(--cy)),
+    linear-gradient(var(--cy), var(--cy)), linear-gradient(var(--cy), var(--cy)),
+    linear-gradient(var(--cy), var(--cy)), linear-gradient(var(--cy), var(--cy));
+  background-repeat: no-repeat;
+  background-size: 12px 1.5px, 1.5px 12px, 12px 1.5px, 1.5px 12px, 12px 1.5px, 1.5px 12px, 12px 1.5px, 1.5px 12px;
+  background-position: top left, top left, top right, top right, bottom left, bottom left, bottom right, bottom right;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 55%);
+  backdrop-filter: blur(10px);
+}
+[data-theme='holo'] .sheet { border-radius: 0; border-left: 0; border-right: 0; border-bottom: 0; }
+[data-theme='holo'] .sheet::before { background: var(--cy); opacity: .5; height: 2px; }
+
+/* ヘッダー */
+[data-theme='holo'] .hud { background: var(--bg); border-bottom: 1px solid var(--line-soft); }
+[data-theme='holo'] .hud--float { background: linear-gradient(rgb(5 8 10 / 92%), rgb(5 8 10 / 0%)); border: 0; }
+[data-theme='holo'] .logo { font-family: 'Barlow Condensed', sans-serif; font-weight: 500; font-size: 26px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink); }
+[data-theme='holo'] .logo__dot { background: var(--am); width: 6px; height: 6px; border-radius: 0; margin-top: 8px; box-shadow: 0 0 8px var(--am); }
+[data-theme='holo'] :is(.lvpill, .mode) { background: transparent; border: 1px solid var(--line); border-radius: 2px; color: var(--cy); font-family: var(--mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+[data-theme='holo'] .lvpill__lv { color: var(--cy); }
+[data-theme='holo'] .lvpill__bar { background: rgb(127 227 255 / 15%); border-radius: 0; }
+[data-theme='holo'] .lvpill__bar span { background: var(--cy); }
+[data-theme='holo'] .mode--demo { background: var(--am); border-color: var(--am); color: #05080a; }
+
+/* 見出し・数値 */
+[data-theme='holo'] :is(.section-title, .page__head h2, .page-title) { font-family: 'Barlow Condensed', 'Zen Kaku Gothic New', sans-serif; font-weight: 500; font-size: 18px; letter-spacing: .14em; color: var(--cy); text-transform: uppercase; }
+[data-theme='holo'] :is(.stat-grid dd, .ev-hero__stats b, .story__time, .lvpill__lv, .level__badge, .ev-progress__num, .route-chip__num, .ev-stops__num, .ev-pick__num, .tile__kind, .story__kind, .stamp, .beacon__order, .stats-row) { font-family: var(--mono); font-weight: 400; letter-spacing: .04em; }
+[data-theme='holo'] :is(.stat-grid dt, .ev-hero__stats div) { color: var(--ink-soft); font-size: 10px; letter-spacing: .12em; }
+[data-theme='holo'] :is(.sheet__teaser, .letter__teaser, .card__body h3) { font-weight: 500; letter-spacing: .02em; }
+
+/* ボタン・入力 */
+[data-theme='holo'] .btn { border-radius: 2px; letter-spacing: .12em; font-weight: 500; }
+[data-theme='holo'] :is(.btn--primary, .btn--glow:not(:disabled)) { background: var(--cy); color: #05080a; box-shadow: 0 0 18px rgb(127 227 255 / 35%); }
+[data-theme='holo'] .btn--ghost { background: transparent; border: 1px solid var(--line); color: var(--ink); }
+[data-theme='holo'] .btn--locked { background: transparent; border: 1px dashed var(--line); color: var(--ink-soft); }
+[data-theme='holo'] .btn--danger { background: #ff6b5a; color: #05080a; }
+[data-theme='holo'] .segmented { background: transparent; border: 1px solid var(--line); border-radius: 2px; }
+[data-theme='holo'] .segmented button { border-radius: 0; color: var(--ink-soft); letter-spacing: .08em; }
+[data-theme='holo'] .segmented button.on { background: rgb(127 227 255 / 16%); color: var(--cy); box-shadow: inset 0 -2px 0 var(--cy); }
+[data-theme='holo'] :is(.field input, .field textarea, .guestbook__form input) { background: rgb(127 227 255 / 5%); border: 1px solid var(--line); border-radius: 2px; color: var(--ink); }
+[data-theme='holo'] :is(.field > span, .field--row label > span) { color: var(--ink-soft); font-weight: 400; letter-spacing: .06em; }
+[data-theme='holo'] .author-link { color: var(--cy); font-weight: 500; }
+[data-theme='holo'] .notice { background: rgb(255 178 74 / 12%); color: var(--am); border-radius: 2px; }
+[data-theme='holo'] .toast { background: var(--panel); color: var(--cy); border: 1px solid var(--line); border-radius: 2px; font-family: var(--mono); letter-spacing: .06em; }
+
+/* 投稿の印：細い六角形のリング */
+[data-theme='holo'] .beacon__ring { width: 40px; height: 44px; border-radius: 0; padding: 1.5px; background: var(--cy); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); box-shadow: none; filter: drop-shadow(0 0 6px rgb(127 227 255 / 70%)); }
+[data-theme='holo'] .beacon__face { border: 0; border-radius: 0; background: rgb(5 8 10 / 88%); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme='holo'] .beacon__glyph { color: var(--cy); font-family: var(--mono); font-size: 18px; font-weight: 400; }
+[data-theme='holo'] .beacon__tip { border-top-color: var(--cy); border-width: 5px; }
+[data-theme='holo'] .beacon--inrange .beacon__ring { background: var(--am); filter: drop-shadow(0 0 10px var(--am)); }
+[data-theme='holo'] .beacon--inrange .beacon__glyph { color: var(--am); }
+[data-theme='holo'] .beacon--inrange .beacon__tip { border-top-color: var(--am); }
+[data-theme='holo'] .beacon--inrange .beacon__ring::after { display: none; }
+[data-theme='holo'] .beacon--opened .beacon__ring { background: #3b5960; filter: none; }
+[data-theme='holo'] .beacon--opened .beacon__glyph { color: #6f9199; }
+[data-theme='holo'] .beacon--opened .beacon__tip { border-top-color: #3b5960; }
+[data-theme='holo'] .beacon--mine .beacon__ring { background: #e6f4f7; }
+[data-theme='holo'] .beacon--mine .beacon__glyph { color: #e6f4f7; }
+[data-theme='holo'] .beacon--mine .beacon__tip { border-top-color: #e6f4f7; }
+[data-theme='holo'] .beacon__label { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 2px; font-weight: 500; letter-spacing: .04em; }
+[data-theme='holo'] .beacon__order { background: var(--am); color: #05080a; border-color: #05080a; border-radius: 2px; }
+[data-theme='holo'] :is(.drop-head__orb, .nearest__ring) { background: var(--cy); border-radius: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme='holo'] :is(.drop-head__orb span, .nearest__ring span) { background: #05080a; border: 0; border-radius: 0; color: var(--cy); font-family: var(--mono); clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme='holo'] .st-inrange :is(.drop-head__orb, .nearest__ring) { background: var(--am); }
+[data-theme='holo'] .st-inrange :is(.drop-head__orb span, .nearest__ring span) { color: var(--am); }
+[data-theme='holo'] .nearest__go { background: var(--cy); color: #05080a; border-radius: 2px; letter-spacing: .1em; }
+[data-theme='holo'] .gauge__bar { background: rgb(127 227 255 / 12%); border-radius: 0; }
+[data-theme='holo'] .gauge__bar span { background: repeating-linear-gradient(90deg, var(--cy) 0 6px, transparent 6px 8px); border-radius: 0; }
+[data-theme='holo'] .gauge b { color: var(--am); font-family: var(--mono); }
+[data-theme='holo'] .crosshair span { background: var(--cy); border-radius: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme='holo'] .crosshair span::after { background: #05080a; box-shadow: none; border: 0; border-radius: 0; clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); }
+[data-theme='holo'] .fab-locate { background: var(--panel); border: 1px solid var(--line); border-radius: 2px; }
+[data-theme='holo'] .fab-locate svg { color: var(--cy); }
+[data-theme='holo'] .paper { display: none; }
+
+/* 地図の上に、うっすらと測量の格子 */
+[data-theme='holo'] .stage:has(.map)::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 3;
+  background-image: linear-gradient(rgb(127 227 255 / 5%) 1px, transparent 1px), linear-gradient(90deg, rgb(127 227 255 / 5%) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask: radial-gradient(120% 90% at 50% 45%, #000 55%, transparent 100%);
+}
+
+/* クリスタルの人形 */
+.crystal { display: block; overflow: visible; }
+.crystal--glow { filter: drop-shadow(0 0 6px var(--crystal-glow)) drop-shadow(0 0 16px color-mix(in srgb, var(--crystal-glow) 45%, transparent)); }
+.avatar--crystal { width: 35px; height: 56px; transform: translateY(-20px); }
+.avatar--crystal .crystal { position: relative; z-index: 2; animation: hover 3s ease-in-out infinite; }
+.avatar--crystal .avatar__pulse { inset: auto; left: 50%; bottom: -18px; width: 70px; height: 26px; margin-left: -35px; border-radius: 50%; background: none; border: 1.5px solid #7fe3ff; animation: ring 2.4s ease-out infinite; }
+.avatar__shadow { position: absolute; left: 50%; bottom: -6px; width: 34px; height: 10px; margin-left: -17px; border-radius: 50%; background: radial-gradient(rgb(127 227 255 / 45%), transparent 70%); }
+@keyframes hover { 50% { transform: translateY(-3px); } }
+@keyframes ring { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
+[data-theme='milk'] .avatar--crystal .avatar__pulse { border-color: #c9918b; }
+
+/* 人形を選ぶ */
+.lookpick { display: flex; flex-direction: column; gap: 12px; margin: 6px 0 16px; }
+.lookpick__stage { position: relative; height: 210px; display: grid; place-items: center; overflow: hidden; background: var(--bg-soft); border-radius: 14px; }
+.lookpick__grid { position: absolute; inset: 0; background-image: linear-gradient(rgb(127 227 255 / 10%) 1px, transparent 1px), linear-gradient(90deg, rgb(127 227 255 / 10%) 1px, transparent 1px); background-size: 22px 22px; mask: radial-gradient(circle at 50% 70%, #000 30%, transparent 75%); }
+.lookpick__stage .crystal { position: relative; animation: hover 3s ease-in-out infinite; }
+.lookpick__row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.lookpick__row button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; border: 1px solid var(--line); background: transparent; border-radius: 10px; font-size: 11px; color: var(--ink-soft); }
+.lookpick__row button.on { border-color: #c9918b; color: var(--ink); box-shadow: inset 0 0 0 1px #c9918b; }
+[data-theme='holo'] .lookpick__row button { border-radius: 2px; }
+[data-theme='holo'] .lookpick__row button.on { border-color: var(--cy); box-shadow: inset 0 0 0 1px var(--cy); }
+.lookpick__swatch { width: 26px; height: 26px; transform: rotate(45deg); border-radius: 3px; box-shadow: 0 0 0 1px rgb(255 255 255 / 30%); }
+.profile-card__figure { width: 84px; height: 110px; display: grid; place-items: center; }
+.profile-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+
+/* はじめての画面 */
+.welcome__kicker { margin: 0; font-family: 'Share Tech Mono', ui-monospace, monospace; font-size: 10px; letter-spacing: .3em; color: var(--ink-soft); }
+.welcome__label { margin: 4px 0 8px; font-size: 11px; letter-spacing: .12em; color: var(--ink-soft); text-align: left; }
+[data-theme='holo'] .welcome h1 { font-family: 'Barlow Condensed', sans-serif; font-weight: 300; font-size: 64px; letter-spacing: .28em; text-transform: uppercase; color: var(--ink); margin: 6px 0 0; padding-left: .28em; }
+[data-theme='holo'] .welcome__lead { color: var(--cy); letter-spacing: .4em; font-size: 12px; }
+[data-theme='holo'] .welcome__steps { color: var(--ink); border-radius: 2px; }
+
+/* タブ */
+[data-theme='holo'] .tabbar { background: rgb(5 8 10 / 94%); border-top: 1px solid var(--line-soft); }
+[data-theme='holo'] .tabbar button { color: var(--ink-soft); }
+[data-theme='holo'] .tabbar button.on { color: var(--cy); }
+[data-theme='holo'] .tabbar .tabbar__post { border-color: var(--cy); color: var(--cy); border-radius: 2px; }
+[data-theme='holo'] .tabbar__me { background: transparent; border: 1px solid var(--cy); color: var(--cy); font-family: var(--mono); border-radius: 0; }
+[data-theme='holo'] .badge { background: var(--am); color: #05080a; border-color: #05080a; border-radius: 2px; }
+
+/* フィード・ページ類 */
+[data-theme='holo'] .card__art {
+  background:
+    radial-gradient(circle at 50% 55%, rgb(127 227 255 / 18%), transparent 60%),
+    repeating-linear-gradient(0deg, rgb(127 227 255 / 6%) 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(90deg, rgb(127 227 255 / 6%) 0 1px, transparent 1px 16px),
+    #071014;
+}
+[data-theme='holo'] .st-opened .card__art { filter: grayscale(.8) brightness(.8); }
+[data-theme='holo'] .card__orb { border-radius: 0; background: rgb(5 8 10 / 70%); border: 1.5px solid var(--cy); color: var(--cy); font-family: var(--mono); }
+[data-theme='holo'] .card__photo { border-radius: 2px; }
+[data-theme='holo'] .tile { border-radius: 2px; border: 1px solid var(--line); }
+[data-theme='holo'] .tile--opened { background: linear-gradient(160deg, #0c2a33, #071318); }
+[data-theme='holo'] .tile--placed { background: linear-gradient(160deg, #2b1d08, #0d0a05); border-color: rgb(255 178 74 / 35%); }
+[data-theme='holo'] .tile--trail { background: #05080a; }
+[data-theme='holo'] .sketch__line { stroke: var(--cy); filter: drop-shadow(0 0 3px var(--cy)); }
+[data-theme='holo'] .sketch__end { fill: var(--am); }
+[data-theme='holo'] .list button { border-color: var(--line-soft); color: var(--ink); }
+[data-theme='holo'] .list .unread button { background: rgb(127 227 255 / 6%); }
+[data-theme='holo'] .notice-icon { border-radius: 2px; background: transparent; border: 1px solid var(--line); color: var(--cy); }
+[data-theme='holo'] .profile-card { border-color: var(--line-soft); }
+[data-theme='holo'] .level__badge { background: transparent; color: var(--am); border: 1px solid var(--am); border-radius: 2px; }
+[data-theme='holo'] .level__bar { background: rgb(127 227 255 / 12%); border-radius: 0; }
+[data-theme='holo'] .level__bar span { background: repeating-linear-gradient(90deg, var(--cy) 0 6px, transparent 6px 8px); }
+[data-theme='holo'] .ev-badge { border-radius: 2px; background: transparent; border: 1px solid var(--line); color: var(--ink-soft); font-family: var(--mono); letter-spacing: .06em; }
+[data-theme='holo'] .ev-badge--live { border-color: var(--am); color: var(--am); }
+[data-theme='holo'] .ev-badge--joined { border-color: var(--cy); color: var(--cy); }
+[data-theme='holo'] :is(.ev-create__plus, .ev-pick button.on .ev-pick__num) { background: transparent; border: 1px solid var(--cy); color: var(--cy); border-radius: 2px; }
+[data-theme='holo'] .ev-create { border-color: var(--line); background: transparent; border-radius: 2px; color: var(--ink); }
+[data-theme='holo'] .ev-pick button { background: transparent; border-color: var(--line-soft); color: var(--ink); border-radius: 2px; }
+[data-theme='holo'] .ev-pick button.on { border-color: var(--cy); background: rgb(127 227 255 / 8%); }
+[data-theme='holo'] .ev-stops { border-left-color: var(--line); }
+[data-theme='holo'] .ev-stops__num { background: #05080a; border-color: var(--cy); color: var(--cy); border-radius: 0; }
+[data-theme='holo'] .ev-stops li.done .ev-stops__num { background: var(--cy); color: #05080a; }
+[data-theme='holo'] :is(.route-chip__bar, .ev-progress__bar) { background: rgb(127 227 255 / 12%); border-radius: 0; }
+[data-theme='holo'] :is(.route-chip__bar, .ev-progress__bar) span { background: var(--am); border-radius: 0; }
+[data-theme='holo'] .route-chip__close { background: transparent; border: 1px solid var(--line); color: var(--ink-soft); border-radius: 2px; }
+[data-theme='holo'] .like--on { color: var(--am); }
+[data-theme='holo'] .guestbook { border-top-color: var(--line-soft); }
+[data-theme='holo'] .guestbook__form .btn { color: var(--cy); background: none; box-shadow: none; }
+[data-theme='holo'] .stamp { border-color: var(--am); color: var(--am); border-radius: 0; }
+[data-theme='holo'] .story__slide--opened { background: radial-gradient(circle at 70% 20%, rgb(127 227 255 / 25%), transparent 45%), linear-gradient(170deg, #0c2a33, #05080a); }
+[data-theme='holo'] .story__slide--placed { background: radial-gradient(circle at 70% 20%, rgb(255 178 74 / 25%), transparent 45%), linear-gradient(170deg, #2b1d08, #05080a); }
+[data-theme='holo'] .toggle input:checked { background: var(--cy); }
+[data-theme='holo'] .overlay { background: rgb(0 0 0 / 70%); }
+[data-theme='holo'] .overlay--solid { background: var(--bg); }
+
+/* 開封の演出も、暗い画面の上に */
+[data-theme='holo'] .pixel-scene { background-color: #05080a; background-image: radial-gradient(rgb(127 227 255 / 12%) 1px, transparent 1px); color: var(--ink); }
+[data-theme='holo'] .pixel-text { color: var(--cy); text-shadow: 3px 3px 0 #0b3a46, 0 0 18px rgb(127 227 255 / 60%); }
+[data-theme='holo'] .pixel-text small { color: var(--am); text-shadow: none; }
+[data-theme='holo'] .pixel-window { background: rgb(6 12 15 / 92%); color: var(--ink); border-color: var(--cy); box-shadow: 0 0 0 4px #05080a, 0 0 24px rgb(127 227 255 / 30%); }
+[data-theme='holo'] .pixel-beam { background: repeating-linear-gradient(90deg, rgb(127 227 255 / 60%) 0 8px, rgb(127 227 255 / 20%) 8px 16px); }

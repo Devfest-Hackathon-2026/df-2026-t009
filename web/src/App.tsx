@@ -1,5 +1,6 @@
 import { ref, uploadBytes } from 'firebase/storage'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DebugPanel, type DebugView } from './components/DebugPanel'
 import { EventCreate, EventDetail, EventList, type EventDraft } from './components/EventViews'
 import { FeedView } from './components/FeedView'
 import { PixelUnlock } from './components/Pixel'
@@ -11,6 +12,7 @@ import { ProfileView } from './components/ProfileView'
 import { RadarView } from './components/RadarView'
 import { DropSheet, OpenedView, PostSheet, type PostDraft } from './components/Sheets'
 import { Welcome } from './components/Welcome'
+import { loadLook, saveLook, type AvatarLook } from './components/Crystal'
 import {
   callAddComment,
   callCreateDrop,
@@ -22,7 +24,7 @@ import {
   storage,
   usingEmulators,
 } from './firebase'
-import { DEFAULT_CENTER, distanceMeters, formatDistance, type LatLng } from './geo'
+import { DEFAULT_CENTER, distanceMeters, formatDistance, moveByMeters, type LatLng } from './geo'
 import { compressImage } from './image'
 import { levelOf } from './types'
 import { useLocation, type LocationMode } from './useLocation'
@@ -43,6 +45,7 @@ import { useTrail } from './useTrail'
 const NAME_KEY = 'kokodake.name'
 const SEEN_KEY = 'kokodake.noticesSeen'
 const COMPLETE_KEY = 'kokodake.completedEvents'
+const THEME_KEY = 'kokodake.theme'
 
 function readStore(key: string) {
   try {
@@ -84,6 +87,20 @@ export default function App() {
   const { me, setMode, setDemoPosition } = useLocation(initialMode())
 
   const [name, setName] = useState(() => readStore(NAME_KEY))
+  const [look, setLookState] = useState<AvatarLook>(loadLook)
+  const setLook = (l: AvatarLook) => {
+    setLookState(l)
+    saveLook(l)
+  }
+  const [theme, setThemeState] = useState<"holo" | "milk">(() => (readStore(THEME_KEY) === "milk" ? "milk" : "holo"))
+  const setTheme = (t: "holo" | "milk") => {
+    setThemeState(t)
+    writeStore(THEME_KEY, t)
+  }
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    document.querySelector("meta[name=theme-color]")?.setAttribute("content", theme === "milk" ? "#fbf8f3" : "#05080a")
+  }, [theme])
   const [view, setView] = useState<View>('map')
   const [profileUid, setProfileUid] = useState<string | null>(null)
   const otherProfile = useProfile(profileUid)
@@ -102,6 +119,10 @@ export default function App() {
   const [eventPage, setEventPage] = useState<{ kind: 'detail'; id: string } | { kind: 'create' } | null>(null)
   const [activeEventId, setActiveEventId] = useState<string | null>(null)
   const [celebrate, setCelebrate] = useState<string | null>(null)
+  const [debugOpen, setDebugOpen] = useState(() => new URLSearchParams(location.search).get('debug') === '1')
+  const [debugView, setDebugView] = useState<DebugView>({ tilt: false, paper: true })
+  const [playUnlock, setPlayUnlock] = useState(false)
+  const logoTaps = useRef<number[]>([])
 
   const events = useEvents()
   const joinedEventIds = useJoinedEventIds(uid)
@@ -311,12 +332,16 @@ export default function App() {
     trail: trailToday,
     footprints,
     route,
+    tilt: debugView.tilt || theme === "holo",
+    theme,
+    look,
   }
 
   if (!name) {
     return (
       <Welcome
-        onDone={(n) => {
+        onDone={(n, l) => {
+          setLook(l)
           writeStore(NAME_KEY, n)
           setName(n)
         }}
@@ -343,7 +368,17 @@ export default function App() {
   return (
     <div className={`app ${onMap ? 'app--map' : ''}`}>
       <header className={`hud ${onMap ? 'hud--float' : ''}`}>
-        <div className="logo">
+        <div
+          className="logo"
+          onClick={() => {
+            const now = Date.now()
+            logoTaps.current = [...logoTaps.current.filter((t) => now - t < 2000), now]
+            if (logoTaps.current.length >= 5) {
+              logoTaps.current = []
+              setDebugOpen(true)
+            }
+          }}
+        >
           onsite<span className="logo__dot" />
         </div>
         <div className="hud__right">
@@ -358,7 +393,7 @@ export default function App() {
             onClick={() => setMode(me.mode === 'demo' ? 'gps' : 'demo')}
             title="デモモードでは、地図をタップした場所を現在地として扱います"
           >
-            {me.mode === 'demo' ? 'デモ：タップで移動' : 'GPS'}
+            {me.mode === 'demo' ? 'DEMO' : 'GPS'}
           </button>
         </div>
       </header>
@@ -378,6 +413,7 @@ export default function App() {
         {view === 'map' && (
           <>
             {hasMapsKey ? <GoogleMapView {...mapProps} /> : <RadarView {...mapProps} />}
+            {debugView.paper && <div className="paper" aria-hidden />}
             {placing && (
               <div className="crosshair" aria-hidden>
                 <span />
@@ -460,6 +496,10 @@ export default function App() {
             share={share}
             onShare={setShare}
             onClearTrails={clearTrails}
+            look={look}
+            onLook={setLook}
+            theme={theme}
+            onTheme={setTheme}
             onPick={pickDrop}
           />
         )}
@@ -619,6 +659,61 @@ export default function App() {
           </button>
         </nav>
       )}
+
+      {debugOpen && (
+        <DebugPanel
+          me={me}
+          uid={uid}
+          drops={drops}
+          selectedId={selectedId}
+          view={debugView}
+          theme={theme}
+          onTheme={setTheme}
+          onView={setDebugView}
+          onMove={setDemoPosition}
+          onDemo={() => setMode('demo')}
+          onSeed={async () => {
+            if (!me.position) return '現在地がありません'
+            const base = me.position
+            const posts = [
+              { teaser: '【テスト】すぐそこの角', dx: 40, dy: 30, radius: 100 },
+              { teaser: '【テスト】ちょっと先の公園', dx: -180, dy: 220, radius: 300 },
+              { teaser: '【テスト】遠くの坂の上', dx: 600, dy: -500, radius: 100 },
+            ]
+            for (const p of posts) {
+              const at = moveByMeters(base, p.dx, p.dy)
+              await callCreateDrop({
+                teaser: p.teaser,
+                body: 'デバッグ用のテスト投稿です。消すときはデバッグパネルの「自分の【テスト】を消す」から。',
+                radius: p.radius,
+                lat: at.lat,
+                lng: at.lng,
+                authorName: name,
+                photoPath: null,
+              })
+            }
+            return 'テスト投稿を3件置きました（自分の投稿なので、ひらく確認は別の端末かシークレットウィンドウで）'
+          }}
+          onDeleteMine={async () => {
+            const mine = drops.filter((d) => d.authorId === uid && d.teaser.startsWith('【テスト】'))
+            for (const d of mine) await callDeleteDrop({ dropId: d.id })
+            return `${mine.length}件消しました`
+          }}
+          onPlayUnlock={() => setPlayUnlock(true)}
+          onPlayComplete={() => setCelebrate('デバッグ用イベント')}
+          onReset={() => {
+            try {
+              for (const k of Object.keys(localStorage)) if (k.startsWith('kokodake.')) localStorage.removeItem(k)
+            } catch {
+              /* 消せなくても再読み込みはする */
+            }
+            location.reload()
+          }}
+          onClose={() => setDebugOpen(false)}
+        />
+      )}
+
+      {playUnlock && <PixelUnlock onDone={() => setPlayUnlock(false)} />}
 
       {celebrate && (
         <PixelUnlock

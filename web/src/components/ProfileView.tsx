@@ -4,6 +4,8 @@ import { formatDistance } from '../geo'
 import { levelOf, type Drop, type OpenedEntry, type PlacedEntry, type Profile } from '../types'
 import { trailLength, type Trails } from '../useTrail'
 import { TrailSketch } from './TrailSketch'
+import { CrystalFigure, type AvatarLook } from './Crystal'
+import { LookPicker } from './Welcome'
 
 type LogItem = {
   id: string
@@ -13,11 +15,17 @@ type LogItem = {
   at: { toDate(): Date } | null
 }
 
-function LevelCard({ name, profile, me }: { name: string; profile: Profile | null; me: boolean }) {
+function LevelCard({ name, profile, me, look }: { name: string; profile: Profile | null; me: boolean; look?: AvatarLook }) {
   const lv = levelOf(profile)
   return (
     <header className="profile-card">
-      <div className="profile-card__avatar">{[...name][0] ?? '?'}</div>
+      {look ? (
+        <div className="profile-card__figure">
+          <CrystalFigure look={look} size={96} />
+        </div>
+      ) : (
+        <div className="profile-card__avatar">{[...name][0] ?? '?'}</div>
+      )}
       <div className="profile-card__main">
         <h2>
           {name}
@@ -96,6 +104,10 @@ export function ProfileView({
   share = false,
   onShare,
   onClearTrails,
+  look,
+  onLook,
+  theme,
+  onTheme,
   onPick,
   onBack,
 }: {
@@ -109,10 +121,15 @@ export function ProfileView({
   share?: boolean
   onShare?: (v: boolean) => void
   onClearTrails?: () => void
+  look?: AvatarLook
+  onLook?: (l: AvatarLook) => void
+  theme?: 'holo' | 'milk'
+  onTheme?: (t: 'holo' | 'milk') => void
   onPick: (id: string) => void
   onBack?: () => void
 }) {
   const [playing, setPlaying] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
 
   const days = useMemo(() => {
     const items: LogItem[] = [
@@ -156,7 +173,20 @@ export function ProfileView({
           ← もどる
         </button>
       )}
-      <LevelCard name={name} profile={profile} me={isMe} />
+      <LevelCard name={name} profile={profile} me={isMe} look={isMe ? look : undefined} />
+      {isMe && look && onLook && (
+        <div className="profile-actions">
+          <button className="btn btn--ghost btn--small" onClick={() => setEditing(!editing)}>
+            {editing ? '人形の設定をとじる' : '人形を変える'}
+          </button>
+          {onTheme && (
+            <button className="btn btn--ghost btn--small" onClick={() => onTheme(theme === 'milk' ? 'holo' : 'milk')}>
+              表示：{theme === 'milk' ? 'MILK（明るい）' : 'HOLO（暗い）'}
+            </button>
+          )}
+        </div>
+      )}
+      {isMe && editing && look && onLook && <LookPicker look={look} onChange={onLook} />}
 
       {isMe ? (
         <>

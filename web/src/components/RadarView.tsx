@@ -57,7 +57,7 @@ export function RadarView(p: MapViewProps) {
           )
         })}
         <div className="radar__me">
-          <Avatar demo={p.me.mode === "demo"} initial={p.initial} />
+          <Avatar demo={p.me.mode === "demo"} initial={p.initial} look={p.look} />
         </div>
       </div>
       <p className="radar__note">地図の API キーが未設定のため、簡易レーダー表示です</p>

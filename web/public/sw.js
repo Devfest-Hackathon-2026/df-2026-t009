@@ -1,8 +1,8 @@
 // onsite の Service Worker。
 // 画面（HTML・JS・CSS・アイコン）だけをキャッシュし、オフラインでも起動できるようにする。
 // Firebase や Google Maps への通信はキャッシュしない（常に最新を取る）。
-const CACHE = 'onsite-v4'
-const SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
+const CACHE = 'onsite-v5'
+const SHELL = ['/manifest.webmanifest', '/icon-192.png', '/icon-512.png']
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)))

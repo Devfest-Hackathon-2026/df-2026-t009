@@ -4,7 +4,7 @@ import { DEFAULT_CENTER, type LatLng } from '../geo'
 import { Avatar, Beacon } from './Beacon'
 import { FootprintLayer, RouteLayer, TrailLayer } from './MapLayers'
 import type { MapViewProps } from './MapTypes'
-import { PIN_COLOR, pinState } from './pins'
+import { pinColor, pinState } from './pins'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string) || 'DEMO_MAP_ID'
@@ -35,13 +35,20 @@ function Camera({
   follow,
   signal,
   focus,
+  tilt,
 }: {
   target: LatLng | null
   follow: boolean
   signal: number
   focus: LatLng | null
+  tilt: boolean
 }) {
   const map = useMap()
+  useEffect(() => {
+    if (!map) return
+    map.setOptions({ tiltInteractionEnabled: tilt, headingInteractionEnabled: tilt })
+    map.moveCamera({ tilt: tilt ? 50 : 0, heading: 0 })
+  }, [map, tilt])
   // 投稿を選んだら、その場所へ寄せる（シートに隠れないよう少し下にずらす）
   useEffect(() => {
     if (!map || !focus) return
@@ -52,7 +59,7 @@ function Camera({
     if (map && target && follow) map.panTo(target)
   }, [map, target?.lat, target?.lng, follow]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (map && target && signal > 0) map.moveCamera({ center: target, zoom: 17, tilt: 45 })
+    if (map && target && signal > 0) map.moveCamera({ center: target, zoom: 17 })
   }, [signal, map]) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
@@ -79,12 +86,13 @@ export function GoogleMapView(p: MapViewProps) {
   return (
     <APIProvider apiKey={API_KEY} language="ja" region="JP">
       <Map
+        key={p.theme ?? "holo"}
         className="map"
         mapId={MAP_ID}
-        colorScheme={ColorScheme.LIGHT}
+        colorScheme={p.theme === "milk" ? ColorScheme.LIGHT : ColorScheme.DARK}
         defaultCenter={myPos ?? DEFAULT_CENTER}
         defaultZoom={17}
-        defaultTilt={45}
+        defaultTilt={0}
         defaultHeading={0}
         gestureHandling="greedy"
         disableDefaultUI
@@ -98,11 +106,12 @@ export function GoogleMapView(p: MapViewProps) {
           follow={follow && !p.placing && !p.selectedId}
           signal={p.recenterSignal}
           focus={p.drops.find((d) => d.id === p.selectedId) ?? null}
+          tilt={!!p.tilt}
         />
 
-        {p.footprints && <FootprintLayer cells={p.footprints} />}
-        {p.trail && <TrailLayer points={p.trail} />}
-        {p.route && <RouteLayer stops={p.route} />}
+        {p.footprints && <FootprintLayer cells={p.footprints} theme={p.theme} />}
+        {p.trail && <TrailLayer points={p.trail} theme={p.theme} />}
+        {p.route && <RouteLayer stops={p.route} theme={p.theme} />}
 
         {p.drops.map((d) => {
           const state = pinState(d, p.uid, p.openedIds, myPos, p.me.accuracy)
@@ -113,10 +122,10 @@ export function GoogleMapView(p: MapViewProps) {
               center={d}
               radius={d.radius}
               options={{
-                strokeColor: PIN_COLOR[state],
+                strokeColor: pinColor(state, p.theme),
                 strokeOpacity: sel || state === 'inrange' ? 0.85 : 0.3,
                 strokeWeight: sel ? 2.5 : 1.2,
-                fillColor: PIN_COLOR[state],
+                fillColor: pinColor(state, p.theme),
                 fillOpacity: sel ? 0.08 : state === 'inrange' ? 0.05 : 0.02,
                 zIndex: 1,
               }}
@@ -145,11 +154,11 @@ export function GoogleMapView(p: MapViewProps) {
               <Circle
                 center={myPos}
                 radius={p.me.accuracy}
-                options={{ strokeOpacity: 0, fillColor: '#c9918b', fillOpacity: 0.12, zIndex: 2 }}
+                options={{ strokeOpacity: 0, fillColor: p.theme === "milk" ? "#c9918b" : "#7fe3ff", fillOpacity: 0.12, zIndex: 2 }}
               />
             ) : null}
             <AdvancedMarker position={myPos} zIndex={2000}>
-              <Avatar demo={p.me.mode === "demo"} initial={p.initial} />
+              <Avatar demo={p.me.mode === "demo"} initial={p.initial} look={p.look} />
             </AdvancedMarker>
           </>
         )}

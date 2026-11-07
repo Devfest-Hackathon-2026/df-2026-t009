@@ -1,0 +1,33 @@
+{
+  "variant": "dark",
+  "backgroundColor": "#070b0d",
+  "styles": [
+    { "id": "natural.land", "geometry": { "fillColor": "#0a1013" } },
+    { "id": "natural.land.landCover", "geometry": { "fillColor": "#0b1215" } },
+    { "id": "natural.land.landCover.forest", "geometry": { "fillColor": "#0c1714" } },
+    { "id": "natural.water", "geometry": { "fillColor": "#06141b" }, "label": { "textFillColor": "#3f7f8c", "textStrokeColor": "#070b0d" } },
+    { "id": "pointOfInterest", "geometry": { "fillColor": "#0c1316" }, "label": { "visible": false } },
+    { "id": "pointOfInterest.recreation", "geometry": { "fillColor": "#0c1714" } },
+    { "id": "pointOfInterest.recreation.park", "geometry": { "fillColor": "#0c1714" }, "label": { "visible": false } },
+    { "id": "pointOfInterest.transit", "label": { "visible": true, "pinFillColor": "#1d4a52", "pinGlyphColor": "#9fe8f5", "pinOutlineColor": "#070b0d", "textFillColor": "#5fa9b5", "textStrokeColor": "#070b0d" } },
+    { "id": "infrastructure.building", "geometry": { "fillColor": "#0e171b", "strokeColor": "#2b6b75", "strokeWeight": 0.6 } },
+    { "id": "infrastructure.urbanArea", "geometry": { "fillColor": "#0a1013" } },
+    { "id": "infrastructure.businessCorridor", "geometry": { "fillColor": "#0a1013" } },
+    { "id": "infrastructure.roadNetwork.road", "geometry": { "fillColor": "#0f1d22", "strokeColor": "#2f7d89", "strokeWeight": 0.8 }, "label": { "textFillColor": "#4f8f99", "textStrokeColor": "#070b0d" } },
+    { "id": "infrastructure.roadNetwork.road.local", "geometry": { "fillColor": "#0d1a1e", "strokeColor": "#21545c" } },
+    { "id": "infrastructure.roadNetwork.road.arterial", "geometry": { "fillColor": "#11242a", "strokeColor": "#4fb3c2", "strokeWeight": 1 } },
+    { "id": "infrastructure.roadNetwork.road.highway", "geometry": { "fillColor": "#132a31", "strokeColor": "#e0a54a", "strokeWeight": 1 }, "label": { "visible": false } },
+    { "id": "infrastructure.roadNetwork.noTraffic", "geometry": { "fillColor": "#0c171b", "strokeColor": "#1a444b" } },
+    { "id": "infrastructure.roadNetwork.roadDetail.surface", "geometry": { "fillColor": "#0f1d22" } },
+    { "id": "infrastructure.roadNetwork.roadDetail.intersection", "geometry": { "fillColor": "#0f1d22" } },
+    { "id": "infrastructure.roadNetwork.roadDetail.sidewalk", "geometry": { "fillColor": "#0b1417" } },
+    { "id": "infrastructure.roadNetwork.roadDetail.crosswalk", "geometry": { "fillColor": "#1a3a40" } },
+    { "id": "infrastructure.roadNetwork.roadShield", "label": { "visible": false } },
+    { "id": "infrastructure.roadNetwork.roadSign", "label": { "visible": false } },
+    { "id": "infrastructure.railwayTrack", "geometry": { "fillColor": "#3a6f78", "strokeColor": "#3a6f78" } },
+    { "id": "infrastructure.transitStation", "label": { "pinFillColor": "#1d4a52", "pinGlyphColor": "#9fe8f5", "textFillColor": "#5fa9b5", "textStrokeColor": "#070b0d" } },
+    { "id": "political", "label": { "textFillColor": "#4b7f88", "textStrokeColor": "#070b0d" } },
+    { "id": "political.border", "geometry": { "strokeColor": "#1f4b52" } },
+    { "id": "political.neighborhood", "label": { "textFillColor": "#3c6a72" } }
+  ]
+}

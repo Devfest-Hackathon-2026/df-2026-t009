@@ -17,8 +17,8 @@
   --shadow: 0 8px 24px rgb(120 95 80 / 14%);
   --shadow-s: 0 2px 10px rgb(120 95 80 / 10%);
   --pixel: 'DotGothic16', monospace;
-  font-family: 'Zen Maru Gothic', 'Noto Sans JP', system-ui, sans-serif;
-  --hand: 'Gaegu', 'Yomogi', 'Zen Maru Gothic', sans-serif;
+  font-family: 'Zen Kaku Gothic New', 'Noto Sans JP', system-ui, sans-serif;
+  --hand: 'Outfit', 'Zen Kaku Gothic New', sans-serif;
   color: var(--ink);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
@@ -45,7 +45,7 @@ button { cursor: pointer; }
   padding-bottom: 26px;
 }
 .hud--float > * { pointer-events: auto; }
-.logo { font-family: var(--hand); font-weight: 700; font-size: 31px; letter-spacing: -.01em; color: #6b5a52; display: flex; align-items: flex-start; gap: 2px; }
+.logo { font-family: var(--hand); font-weight: 600; font-size: 27px; letter-spacing: -.045em; color: #4b4440; display: flex; align-items: flex-start; gap: 2px; }
 .logo__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grad); margin-top: 6px; }
 .hud__right { display: flex; gap: 8px; align-items: center; }
 .lvpill { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; }
@@ -376,7 +376,7 @@ button { cursor: pointer; }
 
 /* ===== はじめての画面 ===== */
 .welcome { width: min(100%, 380px); margin: auto; text-align: center; padding: 24px 0; }
-.welcome h1 { margin: 12px 0 0; font-family: var(--hand); font-size: 64px; font-weight: 700; color: #6b5a52; letter-spacing: 0; }
+.welcome h1 { margin: 14px 0 0; font-family: var(--hand); font-size: 58px; font-weight: 600; color: #4b4440; letter-spacing: -.05em; }
 .welcome__lead { margin: 2px 0 24px; color: var(--ink-soft); font-weight: 500; }
 .welcome__logo { width: 92px; height: 92px; margin: 0 auto; border-radius: 50%; padding: 4px; background: var(--ring); animation: spin 6s linear infinite; }
 .welcome__logo span { display: block; width: 100%; height: 100%; border-radius: 50%; border: 4px solid #fff; background: var(--grad); }
@@ -487,7 +487,7 @@ body, .app { background: var(--bg); }
 /* 投稿の印：白い丸にくすみピンクのフチ、手書きの？ */
 .beacon__ring { padding: 3px; background: #d6a39c; box-shadow: 0 4px 12px rgb(150 110 95 / 25%); }
 .beacon__face { background: #fff; border-width: 2px; }
-.beacon__glyph { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: #c9918b; font-family: var(--hand); font-weight: 700; font-size: 24px; line-height: 1; }
+.beacon__glyph { background: none; -webkit-background-clip: border-box; background-clip: border-box; color: #c9918b; font-family: var(--hand); font-weight: 600; font-size: 19px; line-height: 1; }
 .beacon__tip { border-top-color: #d6a39c; }
 .beacon--opened .beacon__ring { background: #d9cfc4; }
 .beacon--opened .beacon__glyph { color: #b2a69b; }
@@ -497,13 +497,13 @@ body, .app { background: var(--bg); }
 .beacon--mine .beacon__tip { border-top-color: #b9a08c; }
 .beacon--inrange .beacon__ring::after { border-color: #d6a39c; }
 .beacon__label { font-family: 'Zen Maru Gothic', sans-serif; color: #5a514c; border: 1px solid var(--line); }
-.beacon__order { background: #8f7b70; font-family: var(--hand); font-size: 15px; }
+.beacon__order { background: #8f7b70; font-family: var(--hand); font-weight: 600; font-size: 12px; }
 .drop-head__orb, .nearest__ring { background: #d6a39c; }
-.drop-head__orb span, .nearest__ring span { background: #fff; color: #c9918b; font-family: var(--hand); font-size: 24px; }
+.drop-head__orb span, .nearest__ring span { background: #fff; color: #c9918b; font-family: var(--hand); font-weight: 600; font-size: 20px; }
 .st-opened .drop-head__orb { background: #d9cfc4; } .st-opened .drop-head__orb span { color: #b2a69b; }
 .st-mine .drop-head__orb { background: #b9a08c; } .st-mine .drop-head__orb span { color: #9a7f6c; }
-.card__orb { font-family: var(--hand); font-size: 44px; }
-.avatar__core { background: #c9918b; box-shadow: 0 3px 10px rgb(150 110 95 / 40%); font-family: var(--hand); font-size: 17px; }
+.card__orb { font-family: var(--hand); font-weight: 500; font-size: 40px; }
+.avatar__core { background: #c9918b; box-shadow: 0 3px 10px rgb(150 110 95 / 40%); font-family: var(--hand); font-weight: 600; font-size: 14px; }
 .avatar--demo .avatar__core { background: #8f7b70; }
 .crosshair span { background: #d6a39c; }
 .crosshair span::after { box-shadow: inset 0 0 0 9px #fff, inset 0 0 0 20px #c9918b; }
@@ -514,10 +514,10 @@ body, .app { background: var(--bg); }
 .sheet::before { background: #e6ddd2; }
 .author-link { color: #6b5a52; }
 h2, h3, h4 { color: #4b4440; }
-.section-title, .page__head h2, .page-title { font-family: var(--hand); font-size: 24px; font-weight: 700; }
+.section-title, .page__head h2, .page-title { font-family: var(--hand), 'Zen Kaku Gothic New', sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -.01em; }
 .welcome__logo { padding: 5px; background: #d6a39c; }
 .welcome__logo span { background: #fbf0ee; border-color: #fff; }
-.welcome__lead { color: #a39890; letter-spacing: .1em; }
+.welcome__lead { color: #a39890; letter-spacing: .14em; font-size: 13px; }
 .toast { background: #6b5a52; }
 .like--on { color: #c9918b; }
 
@@ -527,3 +527,44 @@ h2, h3, h4 { color: #4b4440; }
 .pixel-text small { color: #b9a08c; text-shadow: 2px 2px 0 #fff; }
 .pixel-window { background: #fffaf4; color: #5a514c; border-color: #6b5a52; box-shadow: 0 0 0 4px #fffaf4, 6px 6px 0 4px rgb(107 90 82 / 25%); }
 .pixel-beam { background: repeating-linear-gradient(90deg, #fff6e8 0 8px, #f3dcc4 8px 16px); }
+
+/* 地図に紙の質感を重ねる（イラストの地図のように） */
+.paper {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: multiply; opacity: .22;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .55 0 0 0 0 .45 0 0 0 0 .38 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 90% at 50% 40%, transparent 70%, rgb(200 170 150 / 10%) 100%);
+}
+/* 普段の画面は Outfit で統一（ドット文字は演出だけに使う） */
+.lvpill__lv, .level__badge, .ev-progress__num, .route-chip__num, .ev-stops__num, .ev-pick__num, .tile__kind, .story__kind, .stamp { font-family: var(--hand); font-weight: 600; letter-spacing: -.01em; }
+.level__badge { background: #4b4440; color: #f3e2da; border-radius: 6px; padding: 2px 8px; }
+.level__bar { box-shadow: none; border-radius: 6px; } .level__bar span { background: linear-gradient(90deg, #e8c4bd, #c9918b); }
+.btn { font-weight: 700; letter-spacing: .02em; }
+.stat-grid dd, .ev-hero__stats b, .story__time { font-family: var(--hand); font-weight: 600; }
+
+/* ===== デバッグパネル ===== */
+.debug {
+  position: fixed; z-index: 95; right: 8px; top: calc(env(safe-area-inset-top) + 56px); width: min(330px, calc(100% - 16px)); max-height: 78vh; overflow: auto;
+  background: rgb(43 38 35 / 94%); color: #f3ece5; border-radius: 16px; padding: 10px 12px 12px; font-size: 12px;
+  box-shadow: 0 10px 30px rgb(0 0 0 / 35%); backdrop-filter: blur(8px); font-family: var(--hand), 'Zen Kaku Gothic New', sans-serif;
+}
+.debug__head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.debug__head b { letter-spacing: .2em; font-size: 12px; color: #e8c4bd; }
+.debug__head button { border: 0; background: none; color: #f3ece5; font-size: 20px; }
+.debug section { border-top: 1px solid rgb(255 255 255 / 10%); padding: 8px 0 4px; }
+.debug h4 { margin: 0 0 6px; font-size: 11px; color: #bfb3a8; font-weight: 500; letter-spacing: .08em; }
+.debug__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.debug button:not(.debug__head button) { border: 1px solid rgb(255 255 255 / 18%); background: rgb(255 255 255 / 8%); color: #f3ece5; border-radius: 8px; padding: 6px 9px; font-size: 12px; }
+.debug button:disabled { opacity: .35; }
+.debug button.on { background: #c9918b; border-color: #c9918b; }
+.debug__pad { display: flex; flex-direction: column; gap: 5px; }
+.debug__padrow { display: flex; align-items: center; gap: 5px; }
+.debug__padrow span { width: 32px; color: #bfb3a8; }
+.debug__padrow button { width: 36px; }
+.debug__small { margin: 0 0 6px; color: #d9cec4; line-height: 1.5; }
+.debug__info { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 0; }
+.debug__info dt { color: #bfb3a8; }
+.debug__info dd { margin: 0; word-break: break-all; font-family: ui-monospace, monospace; font-size: 11px; }
+.debug__warn { width: 100%; margin: 4px 0 6px; background: #c9918b !important; border-color: #c9918b !important; text-align: left; }
+.debug__danger { width: 100%; background: rgb(201 122 116 / 25%) !important; border-color: #c97a74 !important; }
+.debug__msg { margin: 8px 0 0; padding: 8px; border-radius: 8px; background: rgb(255 255 255 / 10%); line-height: 1.5; }
