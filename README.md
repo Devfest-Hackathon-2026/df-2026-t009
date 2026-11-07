@@ -5,7 +5,7 @@
 地図には投稿の「予告」だけが見えます。本文と写真は、投稿者が決めた範囲（100m・300m・500m）に入った人だけが読めます。写真を見た時点で終わってしまう普通のSNSと違い、誰かの発見が「自分で外に出て確かめる」きっかけになります。
 
 - カテゴリ：観光
-- デプロイ先：（デプロイ後に Firebase Hosting の URL をここに書く）
+- デプロイ先：https://kokodake-t009.web.app （審査・デモ用は https://kokodake-t009.web.app/?demo=1 ）
 - 説明書：[docs/product.md](docs/product.md)
 - 使用した素材・ライブラリ：[docs/credits.md](docs/credits.md)
 
@@ -56,7 +56,7 @@ npm test
 
 ## デプロイ
 
-1. Firebase コンソールで、Google Cloud プロジェクト `project-2c1371cc-714f-45d0-933` を Firebase に追加し、Blaze プランにする
+1. Firebase コンソールで、Google Cloud プロジェクト `kokodake-t009` を Firebase に追加し、Blaze プランにする
 2. Authentication で「匿名」を有効にする
 3. Firestore と Storage を作る（場所は `asia-northeast1`）
 4. プロジェクトの設定 → マイアプリ → ウェブアプリを追加し、表示された値を `web/.env.local` に入れる
