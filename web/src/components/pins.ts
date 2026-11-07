@@ -22,3 +22,11 @@ export const PIN_GLYPH: Record<PinState, string> = {
   inrange: '!',
   locked: '?',
 }
+
+/** 範囲の円の色。CSS の --st-* と合わせる。 */
+export const PIN_COLOR: Record<PinState, string> = {
+  mine: '#262626',
+  opened: '#a8a8a8',
+  inrange: '#ff2f6d',
+  locked: '#8a3ab9',
+}

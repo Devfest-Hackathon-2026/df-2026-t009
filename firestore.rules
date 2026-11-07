@@ -1,7 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // 予告・位置・範囲は誰でも読める。書き込みは Cloud Functions 経由のみ。
+    function signedIn() { return request.auth != null; }
+    function unlocked(dropId) {
+      return signedIn() && (
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)/opened/$(dropId)) ||
+        get(/databases/$(database)/documents/drops/$(dropId)).data.authorId == request.auth.uid
+      );
+    }
+
+    // 予告・位置・範囲・数字は誰でも読める。書き込みは Cloud Functions 経由のみ。
     match /drops/{dropId} {
       allow read: if true;
       allow write: if false;
@@ -10,11 +18,23 @@ service cloud.firestore {
       match /private/{doc} {
         allow read, write: if false;
       }
+
+      // その場所でひらいた人と投稿者だけが読めるコメント。
+      match /comments/{commentId} {
+        allow read: if unlocked(dropId);
+        allow write: if false;
+      }
     }
 
-    // 自分が開いた投稿・置いた投稿の記録。本人だけが読める。
+    // 公開プロフィール（名前と数字だけ）。
+    match /profiles/{uid} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // 自分の記録・いいね・お知らせ。本人だけが読める。
     match /users/{uid}/{document=**} {
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if signedIn() && request.auth.uid == uid;
       allow write: if false;
     }
   }

@@ -13,4 +13,5 @@ export type MapViewProps = {
   onCenterChange: (c: LatLng) => void
   onTapLocation: (p: LatLng) => void
   recenterSignal: number
+  initial?: string
 }

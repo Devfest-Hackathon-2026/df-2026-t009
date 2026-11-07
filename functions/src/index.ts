@@ -1,16 +1,17 @@
 import { initializeApp } from "firebase-admin/app";
-import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { getFirestore, FieldValue, Timestamp, type Transaction, type WriteBatch } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { setGlobalOptions } from "firebase-functions/v2";
 import { ALLOWED_RADII, distanceMeters, isValidLatLng, isWithinRadius } from "./geo";
 
 initializeApp();
-setGlobalOptions({ region: "asia-northeast1", maxInstances: 5 });
+// 呼び出し可否は関数の中で Firebase Auth を確かめる。Cloud Run の手前では誰でも呼べるようにする（callable の標準）。
+setGlobalOptions({ region: "asia-northeast1", maxInstances: 5, invoker: "public" });
 
 const db = getFirestore();
 
-const LIMITS = { teaser: 60, body: 600, name: 20 };
+const LIMITS = { teaser: 60, body: 600, name: 20, comment: 200 };
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024;
 
 function requireUid(auth: { uid: string } | undefined): string {
@@ -28,6 +29,62 @@ function cleanText(v: unknown, max: number, field: string, required: boolean): s
   if (required && s.length === 0) throw new HttpsError("invalid-argument", `${field} を入力してください`);
   if ([...s].length > max) throw new HttpsError("invalid-argument", `${field} は ${max} 文字以内にしてください`);
   return s;
+}
+
+function cleanDropId(v: unknown): string {
+  if (typeof v !== "string" || !/^[A-Za-z0-9]{1,40}$/.test(v)) {
+    throw new HttpsError("invalid-argument", "投稿 ID が不正です");
+  }
+  return v;
+}
+
+/** 名前は任意。空なら「名無し」にする（プロフィールの表示用）。 */
+function cleanName(v: unknown): string {
+  try {
+    return cleanText(v, LIMITS.name, "ニックネーム", false) || "名無し";
+  } catch {
+    return "名無し";
+  }
+}
+
+const profileRef = (uid: string) => db.doc(`profiles/${uid}`);
+
+/** 公開プロフィールの数字を増減する。名前も最新にしておく。 */
+function bumpProfile(
+  tx: Transaction | WriteBatch,
+  uid: string,
+  fields: Partial<Record<"placed" | "opened" | "opensReceived" | "likesReceived" | "comments", number>>,
+  name?: string,
+) {
+  const data: Record<string, unknown> = { updatedAt: Timestamp.now() };
+  if (name) data.name = name;
+  for (const [k, n] of Object.entries(fields)) data[k] = FieldValue.increment(n as number);
+  (tx as WriteBatch).set(profileRef(uid), data, { merge: true });
+}
+
+type NotificationType = "open" | "comment" | "like";
+
+/** 投稿者へのお知らせ。自分の操作では送らない。 */
+function notify(
+  tx: Transaction,
+  to: string,
+  from: string,
+  n: { type: NotificationType; dropId: string; teaser: string; actorName: string; text?: string },
+) {
+  if (to === from) return;
+  tx.set(db.collection(`users/${to}/notifications`).doc(), { ...n, actorId: from, createdAt: Timestamp.now() });
+}
+
+/** ひらいた人か投稿者だけが、コメント・いいねできる。 */
+async function requireUnlocked(tx: Transaction, uid: string, dropId: string) {
+  const dropRef = db.doc(`drops/${dropId}`);
+  const [dropSnap, openedSnap] = await Promise.all([tx.get(dropRef), tx.get(db.doc(`users/${uid}/opened/${dropId}`))]);
+  if (!dropSnap.exists) throw new HttpsError("not-found", "投稿が見つかりません");
+  const drop = dropSnap.data()!;
+  if (!openedSnap.exists && drop.authorId !== uid) {
+    throw new HttpsError("permission-denied", "この場所でひらいた人だけが反応できます");
+  }
+  return { dropRef, drop };
 }
 
 /**
@@ -74,10 +131,13 @@ export const createDrop = onCall(async (req) => {
     radius,
     hasPhoto: photoPath !== null,
     openCount: 0,
+    likeCount: 0,
+    commentCount: 0,
     createdAt: now,
   });
   batch.set(ref.collection("private").doc("content"), { body, photoPath });
   batch.set(db.doc(`users/${uid}/placed/${ref.id}`), { teaser, lat: d.lat, lng: d.lng, radius, createdAt: now });
+  bumpProfile(batch, uid, { placed: 1 }, authorName);
   await batch.commit();
   return { id: ref.id };
 });
@@ -90,10 +150,9 @@ export const createDrop = onCall(async (req) => {
  */
 export const openDrop = onCall({ memory: "512MiB" }, async (req) => {
   const uid = requireUid(req.auth);
-  const { dropId, lat, lng, accuracy } = req.data ?? {};
-  if (typeof dropId !== "string" || !/^[A-Za-z0-9]{1,40}$/.test(dropId)) {
-    throw new HttpsError("invalid-argument", "投稿 ID が不正です");
-  }
+  const { lat, lng, accuracy } = req.data ?? {};
+  const dropId = cleanDropId(req.data?.dropId);
+  const name = cleanName(req.data?.name);
 
   const dropRef = db.doc(`drops/${dropId}`);
   const openedRef = db.doc(`users/${uid}/opened/${dropId}`);
@@ -107,15 +166,18 @@ export const openDrop = onCall({ memory: "512MiB" }, async (req) => {
     if (isValidLatLng(lat, lng)) distance = distanceMeters(lat, lng, drop.lat, drop.lng);
 
     const alreadyAllowed = openedSnap.exists || drop.authorId === uid;
+    let firstTime = false;
     if (!alreadyAllowed) {
       if (distance === null) throw new HttpsError("invalid-argument", "現在地が取得できていません");
       const acc = typeof accuracy === "number" && Number.isFinite(accuracy) ? accuracy : undefined;
       if (!isWithinRadius(distance, drop.radius, acc)) {
         return { status: "too_far" as const, distance: Math.round(distance), radius: drop.radius };
       }
+      firstTime = true;
       tx.set(openedRef, {
         teaser: drop.teaser,
         authorName: drop.authorName,
+        authorId: drop.authorId,
         lat: drop.lat,
         lng: drop.lng,
         radius: drop.radius,
@@ -123,8 +185,16 @@ export const openDrop = onCall({ memory: "512MiB" }, async (req) => {
         openedDistance: Math.round(distance),
       });
       tx.update(dropRef, { openCount: FieldValue.increment(1) });
+      bumpProfile(tx, uid, { opened: 1 }, name);
+      bumpProfile(tx, drop.authorId, { opensReceived: 1 });
+      notify(tx, drop.authorId, uid, { type: "open", dropId, teaser: drop.teaser, actorName: name });
     }
-    return { status: "opened" as const, distance: distance === null ? null : Math.round(distance), radius: drop.radius };
+    return {
+      status: "opened" as const,
+      firstTime,
+      distance: distance === null ? null : Math.round(distance),
+      radius: drop.radius,
+    };
   });
 
   if (result.status === "too_far") return result;
@@ -139,24 +209,62 @@ export const openDrop = onCall({ memory: "512MiB" }, async (req) => {
   return { ...result, body: content.body ?? "", photo };
 });
 
-/** 自分の投稿を消す（公開部分・非公開部分・写真）。 */
+/** その場所でひらいた人だけが書けるコメント。読めるのも、ひらいた人と投稿者だけ（firestore.rules）。 */
+export const addComment = onCall(async (req) => {
+  const uid = requireUid(req.auth);
+  const dropId = cleanDropId(req.data?.dropId);
+  const text = cleanText(req.data?.text, LIMITS.comment, "コメント", true);
+  const name = cleanName(req.data?.name);
+
+  return db.runTransaction(async (tx) => {
+    const { dropRef, drop } = await requireUnlocked(tx, uid, dropId);
+    const ref = dropRef.collection("comments").doc();
+    tx.set(ref, { authorId: uid, authorName: name, text, createdAt: Timestamp.now() });
+    tx.update(dropRef, { commentCount: FieldValue.increment(1) });
+    bumpProfile(tx, uid, { comments: 1 }, name);
+    notify(tx, drop.authorId, uid, { type: "comment", dropId, teaser: drop.teaser, actorName: name, text });
+    return { id: ref.id };
+  });
+});
+
+/** いいね（ひらいた人だけ）。もう一度押すと取り消す。 */
+export const toggleLike = onCall(async (req) => {
+  const uid = requireUid(req.auth);
+  const dropId = cleanDropId(req.data?.dropId);
+  const name = cleanName(req.data?.name);
+
+  return db.runTransaction(async (tx) => {
+    const likedRef = db.doc(`users/${uid}/liked/${dropId}`);
+    const likedSnap = await tx.get(likedRef);
+    const { dropRef, drop } = await requireUnlocked(tx, uid, dropId);
+    if (likedSnap.exists) {
+      tx.delete(likedRef);
+      tx.update(dropRef, { likeCount: FieldValue.increment(-1) });
+      bumpProfile(tx, drop.authorId, { likesReceived: -1 });
+      return { liked: false };
+    }
+    tx.set(likedRef, { createdAt: Timestamp.now() });
+    tx.update(dropRef, { likeCount: FieldValue.increment(1) });
+    bumpProfile(tx, drop.authorId, { likesReceived: 1 });
+    notify(tx, drop.authorId, uid, { type: "like", dropId, teaser: drop.teaser, actorName: name });
+    return { liked: true };
+  });
+});
+
+/** 自分の投稿を消す（公開部分・非公開部分・コメント・写真）。 */
 export const deleteDrop = onCall(async (req) => {
   const uid = requireUid(req.auth);
-  const dropId = req.data?.dropId;
-  if (typeof dropId !== "string" || !/^[A-Za-z0-9]{1,40}$/.test(dropId)) {
-    throw new HttpsError("invalid-argument", "投稿 ID が不正です");
-  }
+  const dropId = cleanDropId(req.data?.dropId);
   const dropRef = db.doc(`drops/${dropId}`);
   const snap = await dropRef.get();
   if (!snap.exists) return { ok: true };
   if (snap.data()!.authorId !== uid) throw new HttpsError("permission-denied", "自分の投稿だけ消せます");
-  const contentRef = dropRef.collection("private").doc("content");
-  const content = (await contentRef.get()).data();
+  const content = (await dropRef.collection("private").doc("content").get()).data();
   if (content?.photoPath) await getStorage().bucket().file(content.photoPath).delete().catch(() => undefined);
+  await db.recursiveDelete(dropRef);
   const batch = db.batch();
-  batch.delete(contentRef);
-  batch.delete(dropRef);
   batch.delete(db.doc(`users/${uid}/placed/${dropId}`));
+  bumpProfile(batch, uid, { placed: -1 });
   await batch.commit();
   return { ok: true };
 });

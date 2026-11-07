@@ -1,7 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { distanceMeters, formatDistance, isWithin, RADII, type LatLng } from '../geo'
-import type { Drop } from '../types'
+import { timeAgo } from '../time'
+import type { Comment, Drop } from '../types'
 import type { Me } from '../useLocation'
+import { PixelUnlock } from './Pixel'
+import { PIN_GLYPH, pinState } from './pins'
 
 export function DropSheet({
   drop,
@@ -12,6 +15,7 @@ export function DropSheet({
   error,
   onOpen,
   onClose,
+  onAuthor,
 }: {
   drop: Drop
   me: Me
@@ -21,42 +25,61 @@ export function DropSheet({
   error: string | null
   onOpen: () => void
   onClose: () => void
+  onAuthor: (uid: string) => void
 }) {
   const dist = me.position ? distanceMeters(me.position, drop) : null
   const mine = drop.authorId === uid
   const inRange = dist !== null && isWithin(dist, drop.radius, me.accuracy)
   const canOpen = mine || opened || inRange
   const remaining = dist !== null ? Math.max(0, dist - drop.radius) : null
+  const state = pinState(drop, uid, opened ? new Set([drop.id]) : new Set(), me.position, me.accuracy)
+  // 範囲の外 1km までをゲージで表す
+  const gauge = dist === null ? 0 : canOpen ? 1 : Math.max(0.04, 1 - (dist - drop.radius) / 1000)
 
   return (
-    <section className="sheet" role="dialog" aria-label="投稿の予告">
+    <section className={`sheet sheet--drop st-${state}`} role="dialog" aria-label="投稿の予告">
       <button className="sheet__close" onClick={onClose} aria-label="閉じる">
         ×
       </button>
-      <p className="sheet__meta">
-        {drop.authorName} が置いた{drop.hasPhoto ? '写真つきの' : ''}投稿 ・ {drop.openCount}人がひらいた
-      </p>
-      <h2 className="sheet__teaser">{drop.teaser}</h2>
-      <div className="sheet__range">
-        <span className="chip">半径 {drop.radius}m 以内でひらける</span>
-        {dist !== null && <span className="chip chip--soft">ここから {formatDistance(dist)}</span>}
+      <div className="drop-head">
+        <span className="drop-head__orb">
+          <span>{PIN_GLYPH[state]}</span>
+        </span>
+        <div>
+          <button className="author-link" onClick={() => onAuthor(drop.authorId)}>
+            {drop.authorName}
+          </button>
+          <span className="muted"> ・ {timeAgo(drop.createdAt)}</span>
+          <h2 className="sheet__teaser">{drop.teaser}</h2>
+        </div>
       </div>
+      <div className="stats-row">
+        <span>👣 {drop.openCount}</span>
+        <span>♥ {drop.likeCount ?? 0}</span>
+        <span>💬 {drop.commentCount ?? 0}</span>
+        <span>◎ 半径 {drop.radius}m</span>
+        {drop.hasPhoto && <span>📷</span>}
+      </div>
+
+      {!canOpen && (
+        <div className="gauge">
+          <div className="gauge__bar">
+            <span style={{ width: `${gauge * 100}%` }} />
+          </div>
+          <p>
+            {remaining === null ? '現在地が分かると、あとどれくらいか表示されます' : <>あと <b>{formatDistance(remaining)}</b> 近づくとひらける</>}
+          </p>
+        </div>
+      )}
       {error && <p className="error">{error}</p>}
       {canOpen ? (
-        <button className="btn btn--primary btn--wide" disabled={busy} onClick={onOpen}>
+        <button className="btn btn--primary btn--wide btn--glow" disabled={busy} onClick={onOpen}>
           {busy ? 'ひらいています…' : mine ? '自分の投稿を見る' : opened ? 'もう一度読む' : 'ひらく'}
         </button>
       ) : (
-        <div className="locked">
-          <div className="locked__icon" aria-hidden>
-            ?
-          </div>
-          <p>
-            {remaining === null
-              ? '現在地が分かると、あとどれくらいか表示されます'
-              : `あと ${formatDistance(remaining)} 近づくとひらけます`}
-          </p>
-        </div>
+        <button className="btn btn--locked btn--wide" disabled>
+          🔒 近づくとひらけます
+        </button>
       )}
     </section>
   )
@@ -67,27 +90,95 @@ export function OpenedView({
   body,
   photo,
   firstTime,
+  mine,
+  liked,
+  comments,
+  onLike,
+  onComment,
+  onAuthor,
   onClose,
   onDelete,
-  mine,
 }: {
   drop: Drop
   body: string
   photo: string | null
   firstTime: boolean
   mine: boolean
+  liked: boolean
+  comments: Comment[]
+  onLike: () => void
+  onComment: (text: string) => Promise<boolean>
+  onAuthor: (uid: string) => void
   onClose: () => void
   onDelete: () => void
 }) {
+  const [burst, setBurst] = useState(firstTime)
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+  const endRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: 'nearest' })
+  }, [comments.length])
+
+  if (burst) return <PixelUnlock onDone={() => setBurst(false)} />
+
   return (
     <div className="overlay" onClick={onClose}>
       <article className="letter" onClick={(e) => e.stopPropagation()}>
         {firstTime && <div className="stamp">ここで ひらいた</div>}
-        <p className="letter__meta">{drop.authorName} より</p>
+        <button className="author-link" onClick={() => onAuthor(drop.authorId)}>
+          {drop.authorName}
+        </button>
+        <span className="muted"> ・ {timeAgo(drop.createdAt)}</span>
         <h2 className="letter__teaser">{drop.teaser}</h2>
-        {photo && <img className="letter__photo" src={photo} alt="投稿者が撮った写真" />}
+        {photo && <img className="letter__photo" src={photo} alt="投稿者がその場で撮った写真" />}
         {body && <p className="letter__body">{body}</p>}
-        <p className="letter__foot">{drop.openCount}人がこの場所でひらきました</p>
+
+        <div className="react-row">
+          <button className={`like ${liked ? 'like--on' : ''}`} onClick={onLike} aria-pressed={liked}>
+            {liked ? '♥' : '♡'} {drop.likeCount ?? 0}
+          </button>
+          <span className="muted">👣 {drop.openCount}人がこの場所でひらいた</span>
+        </div>
+
+        <section className="guestbook">
+          <h3>
+            ここに来た人の寄せ書き <span className="muted">（ひらいた人だけが見られます）</span>
+          </h3>
+          {comments.length === 0 ? (
+            <p className="muted small">まだ誰も書いていません。最初のひとことを残そう。</p>
+          ) : (
+            <ul>
+              {comments.map((c) => (
+                <li key={c.id}>
+                  <button className="author-link" onClick={() => onAuthor(c.authorId)}>
+                    {c.authorName}
+                  </button>
+                  <span className="muted small"> {timeAgo(c.createdAt)}</span>
+                  <p>{c.text}</p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div ref={endRef} />
+          <form
+            className="guestbook__form"
+            onSubmit={async (e) => {
+              e.preventDefault()
+              if (!text.trim() || sending) return
+              setSending(true)
+              if (await onComment(text)) setText('')
+              setSending(false)
+            }}
+          >
+            <input value={text} maxLength={200} placeholder="ひとこと残す" onChange={(e) => setText(e.target.value)} />
+            <button className="btn btn--primary" disabled={!text.trim() || sending}>
+              送る
+            </button>
+          </form>
+        </section>
+
         <div className="letter__actions">
           {mine && (
             <button className="btn btn--ghost" onClick={onDelete}>
@@ -136,7 +227,7 @@ export function PostSheet({
   const valid = teaser.trim().length > 0 && (body.trim().length > 0 || photo)
 
   return (
-    <div className="overlay">
+    <div className="overlay overlay--bottom">
       <form
         className="sheet sheet--form"
         onSubmit={(e) => {
@@ -144,12 +235,36 @@ export function PostSheet({
           if (valid && !busy) onSubmit({ teaser, body, radius, photo })
         }}
       >
-        <h2 className="sheet__title">ここに投稿を置く</h2>
+        <h2 className="sheet__title">ここにビーコンを置く</h2>
         {nearMe && (
           <p className="notice">
             今いる場所にそのまま置こうとしています。自宅や職場など、知られたくない場所には置かないでください。
           </p>
         )}
+
+        <div className="field">
+          <span>いまの景色（その場で撮る・加工なし）</span>
+          {preview ? (
+            <div className="photo-pick">
+              <img src={preview} alt="撮った写真" />
+              <button type="button" className="btn btn--ghost" onClick={() => pick(null)}>
+                撮り直す
+              </button>
+            </div>
+          ) : (
+            <label className="shutter">
+              <span className="shutter__btn" aria-hidden />
+              <span>タップして撮る</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                hidden
+                onChange={(e) => pick(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          )}
+        </div>
 
         <label className="field">
           <span>予告（誰でも見える）</span>
@@ -167,7 +282,7 @@ export function PostSheet({
           <textarea
             value={body}
             maxLength={600}
-            rows={4}
+            rows={3}
             placeholder="正門を背にして、左の塔を見上げてみて。"
             onChange={(e) => setBody(e.target.value)}
           />
@@ -175,24 +290,7 @@ export function PostSheet({
         </label>
 
         <div className="field">
-          <span>写真（近づいた人だけ見える）</span>
-          {preview ? (
-            <div className="photo-pick">
-              <img src={preview} alt="選んだ写真" />
-              <button type="button" className="btn btn--ghost" onClick={() => pick(null)}>
-                外す
-              </button>
-            </div>
-          ) : (
-            <label className="btn btn--ghost photo-pick__btn">
-              写真を選ぶ
-              <input type="file" accept="image/*" hidden onChange={(e) => pick(e.target.files?.[0] ?? null)} />
-            </label>
-          )}
-        </div>
-
-        <div className="field">
-          <span>どこまで近づいたら読めるか</span>
+          <span>どこまで近づいたらひらけるか</span>
           <div className="segmented" role="radiogroup">
             {RADII.map((r) => (
               <button
@@ -214,7 +312,7 @@ export function PostSheet({
           <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={busy}>
             やめる
           </button>
-          <button type="submit" className="btn btn--primary" disabled={!valid || busy}>
+          <button type="submit" className="btn btn--primary btn--glow" disabled={!valid || busy}>
             {busy ? '置いています…' : '置く'}
           </button>
         </div>

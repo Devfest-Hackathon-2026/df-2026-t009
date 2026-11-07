@@ -42,11 +42,16 @@ export type CreateDropInput = {
 
 export type OpenDropResult =
   | { status: 'too_far'; distance: number; radius: number }
-  | { status: 'opened'; distance: number | null; radius: number; body: string; photo: string | null }
+  | { status: 'opened'; firstTime: boolean; distance: number | null; radius: number; body: string; photo: string | null }
 
 export const callCreateDrop = httpsCallable<CreateDropInput, { id: string }>(functions, 'createDrop')
 export const callOpenDrop = httpsCallable<
-  { dropId: string; lat?: number; lng?: number; accuracy?: number },
+  { dropId: string; lat?: number; lng?: number; accuracy?: number; name?: string },
   OpenDropResult
 >(functions, 'openDrop')
 export const callDeleteDrop = httpsCallable<{ dropId: string }, { ok: boolean }>(functions, 'deleteDrop')
+export const callAddComment = httpsCallable<{ dropId: string; text: string; name: string }, { id: string }>(
+  functions,
+  'addComment',
+)
+export const callToggleLike = httpsCallable<{ dropId: string; name: string }, { liked: boolean }>(functions, 'toggleLike')

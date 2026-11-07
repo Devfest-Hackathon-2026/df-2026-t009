@@ -1,7 +1,8 @@
-import { DEFAULT_CENTER, distanceMeters, moveByMeters, offsetMeters } from '../geo'
-import type { MapViewProps } from './MapTypes'
-import { PIN_GLYPH, pinState } from './pins'
 import { useEffect } from 'react'
+import { DEFAULT_CENTER, distanceMeters, moveByMeters, offsetMeters } from '../geo'
+import { Avatar, Beacon } from './Beacon'
+import type { MapViewProps } from './MapTypes'
+import { pinState } from './pins'
 
 const VIEW_RADIUS = 650
 
@@ -44,19 +45,20 @@ export function RadarView(p: MapViewProps) {
           return (
             <button
               key={d.id}
-              className={`radar__pin pin pin--${state} ${d.id === p.selectedId ? 'pin--selected' : ''} ${k < 1 ? 'radar__pin--far' : ''}`}
+              className={`radar__pin ${k < 1 ? 'radar__pin--far' : ''}`}
               style={{ left: `${toPct(x * k)}%`, top: `${100 - toPct(y * k)}%` }}
               onClick={(e) => {
                 e.stopPropagation()
                 if (!p.placing) p.onSelect(d.id)
               }}
             >
-              <span className="pin__glyph">{PIN_GLYPH[state]}</span>
-              <span className="pin__label">{d.teaser}</span>
+              <Beacon drop={d} state={state} selected={d.id === p.selectedId} />
             </button>
           )
         })}
-        <div className={`me radar__me ${p.me.mode === 'demo' ? 'me--demo' : ''}`} />
+        <div className="radar__me">
+          <Avatar demo={p.me.mode === "demo"} initial={p.initial} />
+        </div>
       </div>
       <p className="radar__note">地図の API キーが未設定のため、簡易レーダー表示です</p>
     </div>

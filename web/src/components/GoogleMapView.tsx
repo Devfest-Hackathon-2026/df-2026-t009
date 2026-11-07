@@ -1,8 +1,9 @@
-import { AdvancedMarker, APIProvider, Map, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
-import { useEffect, useRef } from 'react'
+import { AdvancedMarker, APIProvider, ColorScheme, Map, useMap, type MapMouseEvent } from '@vis.gl/react-google-maps'
+import { useEffect, useRef, useState } from 'react'
 import { DEFAULT_CENTER, type LatLng } from '../geo'
+import { Avatar, Beacon } from './Beacon'
 import type { MapViewProps } from './MapTypes'
-import { PIN_GLYPH, pinState } from './pins'
+import { PIN_COLOR, pinState } from './pins'
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string
 const MAP_ID = (import.meta.env.VITE_GOOGLE_MAPS_MAP_ID as string) || 'DEMO_MAP_ID'
@@ -24,24 +25,47 @@ function Circle({ center, radius, options }: { center: LatLng; radius: number; o
   return null
 }
 
-function Recenter({ target, signal }: { target: LatLng | null; signal: number }) {
+/**
+ * カメラ。追従中は自分の位置を画面の中心に保つ（位置情報ゲームのように）。
+ * 地図を指で動かすと追従をやめ、「現在地に戻る」で再開する。
+ */
+function Camera({
+  target,
+  follow,
+  signal,
+  focus,
+}: {
+  target: LatLng | null
+  follow: boolean
+  signal: number
+  focus: LatLng | null
+}) {
   const map = useMap()
-  const didInitial = useRef(false)
+  // 投稿を選んだら、その場所へ寄せる（シートに隠れないよう少し下にずらす）
   useEffect(() => {
-    if (!map || !target) return
-    if (!didInitial.current) {
-      didInitial.current = true
-      map.setCenter(target)
-    }
-  }, [map, target]) // 初回の現在地取得時だけ自動で寄せる
+    if (!map || !focus) return
+    map.panTo(focus)
+    map.panBy(0, 120)
+  }, [map, focus?.lat, focus?.lng]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (map && target && signal > 0) map.panTo(target)
-  }, [signal, map]) // eslint-disable-line react-hooks/exhaustive-deps -- signal が変わったときだけ動かす
+    if (map && target && follow) map.panTo(target)
+  }, [map, target?.lat, target?.lng, follow]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (map && target && signal > 0) map.moveCamera({ center: target, zoom: 17, tilt: 45 })
+  }, [signal, map]) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
 
 export function GoogleMapView(p: MapViewProps) {
   const myPos = p.me.position
+  const [follow, setFollow] = useState(true)
+
+  useEffect(() => {
+    if (p.recenterSignal > 0) setFollow(true)
+  }, [p.recenterSignal])
+  useEffect(() => {
+    if (p.placing) setFollow(false)
+  }, [p.placing])
 
   const handleClick = (e: MapMouseEvent) => {
     if (p.placing) return
@@ -55,29 +79,39 @@ export function GoogleMapView(p: MapViewProps) {
       <Map
         className="map"
         mapId={MAP_ID}
+        colorScheme={ColorScheme.LIGHT}
         defaultCenter={myPos ?? DEFAULT_CENTER}
-        defaultZoom={16}
+        defaultZoom={17}
+        defaultTilt={45}
+        defaultHeading={0}
         gestureHandling="greedy"
         disableDefaultUI
         clickableIcons={false}
         onClick={handleClick}
+        onDragstart={() => setFollow(false)}
         onCameraChanged={(e) => p.onCenterChange(e.detail.center)}
       >
-        <Recenter target={myPos} signal={p.recenterSignal} />
+        <Camera
+          target={myPos}
+          follow={follow && !p.placing && !p.selectedId}
+          signal={p.recenterSignal}
+          focus={p.drops.find((d) => d.id === p.selectedId) ?? null}
+        />
 
         {p.drops.map((d) => {
           const state = pinState(d, p.uid, p.openedIds, myPos, p.me.accuracy)
+          const sel = d.id === p.selectedId
           return (
             <Circle
               key={`c-${d.id}`}
               center={d}
               radius={d.radius}
               options={{
-                strokeColor: state === 'inrange' ? '#e8613c' : '#8a7a63',
-                strokeOpacity: d.id === p.selectedId ? 0.9 : 0.25,
-                strokeWeight: d.id === p.selectedId ? 2 : 1,
-                fillColor: state === 'inrange' ? '#e8613c' : '#8a7a63',
-                fillOpacity: d.id === p.selectedId ? 0.12 : 0.04,
+                strokeColor: PIN_COLOR[state],
+                strokeOpacity: sel || state === 'inrange' ? 0.85 : 0.3,
+                strokeWeight: sel ? 2.5 : 1.2,
+                fillColor: PIN_COLOR[state],
+                fillOpacity: sel ? 0.08 : state === 'inrange' ? 0.05 : 0.02,
                 zIndex: 1,
               }}
             />
@@ -86,17 +120,15 @@ export function GoogleMapView(p: MapViewProps) {
 
         {p.drops.map((d) => {
           const state = pinState(d, p.uid, p.openedIds, myPos, p.me.accuracy)
+          const sel = d.id === p.selectedId
           return (
             <AdvancedMarker
               key={d.id}
               position={d}
-              zIndex={d.id === p.selectedId ? 1000 : state === 'inrange' ? 500 : 10}
+              zIndex={sel ? 1000 : state === 'inrange' ? 500 : 10}
               onClick={() => !p.placing && p.onSelect(d.id)}
             >
-              <div className={`pin pin--${state} ${d.id === p.selectedId ? 'pin--selected' : ''}`}>
-                <span className="pin__glyph">{PIN_GLYPH[state]}</span>
-                <span className="pin__label">{d.teaser}</span>
-              </div>
+              <Beacon drop={d} state={state} selected={sel} />
             </AdvancedMarker>
           )
         })}
@@ -107,15 +139,14 @@ export function GoogleMapView(p: MapViewProps) {
               <Circle
                 center={myPos}
                 radius={p.me.accuracy}
-                options={{ strokeOpacity: 0, fillColor: '#2f6fde', fillOpacity: 0.1, zIndex: 2 }}
+                options={{ strokeOpacity: 0, fillColor: '#0095f6', fillOpacity: 0.12, zIndex: 2 }}
               />
             ) : null}
             <AdvancedMarker position={myPos} zIndex={2000}>
-              <div className={`me ${p.me.mode === 'demo' ? 'me--demo' : ''}`} aria-label="現在地" />
+              <Avatar demo={p.me.mode === "demo"} initial={p.initial} />
             </AdvancedMarker>
           </>
         )}
-
       </Map>
     </APIProvider>
   )
