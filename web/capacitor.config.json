@@ -1,6 +1,6 @@
 {
   "appId": "app.kokodake.walk",
-  "appName": "ここだけ",
+  "appName": "onsite",
   "webDir": "dist",
   "server": {
     "androidScheme": "https",

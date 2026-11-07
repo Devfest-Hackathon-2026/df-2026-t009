@@ -44,7 +44,7 @@ button { cursor: pointer; }
   padding-bottom: 26px;
 }
 .hud--float > * { pointer-events: auto; }
-.logo { font-weight: 900; font-size: 24px; letter-spacing: -.02em; display: flex; align-items: flex-start; gap: 2px; }
+.logo { font-family: 'Poppins', sans-serif; font-weight: 800; font-size: 25px; letter-spacing: -.04em; display: flex; align-items: flex-start; gap: 2px; }
 .logo__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--grad); margin-top: 6px; }
 .hud__right { display: flex; gap: 8px; align-items: center; }
 .lvpill { display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; }
@@ -375,7 +375,7 @@ button { cursor: pointer; }
 
 /* ===== はじめての画面 ===== */
 .welcome { width: min(100%, 380px); margin: auto; text-align: center; padding: 24px 0; }
-.welcome h1 { margin: 16px 0 0; font-size: 44px; font-weight: 900; letter-spacing: -.02em; }
+.welcome h1 { margin: 16px 0 0; font-family: 'Poppins', sans-serif; font-size: 52px; font-weight: 800; letter-spacing: -.05em; }
 .welcome__lead { margin: 2px 0 24px; color: var(--ink-soft); font-weight: 500; }
 .welcome__logo { width: 92px; height: 92px; margin: 0 auto; border-radius: 50%; padding: 4px; background: var(--ring); animation: spin 6s linear infinite; }
 .welcome__logo span { display: block; width: 100%; height: 100%; border-radius: 50%; border: 4px solid #fff; background: var(--grad); }

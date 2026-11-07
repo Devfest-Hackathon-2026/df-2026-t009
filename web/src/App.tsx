@@ -344,7 +344,7 @@ export default function App() {
     <div className={`app ${onMap ? 'app--map' : ''}`}>
       <header className={`hud ${onMap ? 'hud--float' : ''}`}>
         <div className="logo">
-          ここだけ<span className="logo__dot" />
+          onsite<span className="logo__dot" />
         </div>
         <div className="hud__right">
           <button className="lvpill" onClick={() => goTo('me')} title="レベル">

@@ -14,12 +14,12 @@ export function Welcome({ onDone }: { onDone: (name: string) => void }) {
         <div className="welcome__logo" aria-hidden>
           <span />
         </div>
-        <h1>ここだけ</h1>
+        <h1>onsite</h1>
         <p className="welcome__lead">近づくと、ひらく。</p>
         <ol className="welcome__steps">
-          <li>地図には、誰かが置いた投稿の「予告」だけが見えます</li>
-          <li>本文と写真は、その場所の近くまで歩いた人だけが読めます</li>
-          <li>あなたも、見つけたものを場所に置いていけます</li>
+          <li>地図には、誰かがその場所に残した投稿の「予告」だけが見えます</li>
+          <li>本文と写真は、実際に近くまで行った人だけがひらけます</li>
+          <li>街歩きでも旅先でも。見つけたものを置いたり、巡るイベントを作ったりできます</li>
         </ol>
         <label className="field">
           <span>ニックネーム</span>
