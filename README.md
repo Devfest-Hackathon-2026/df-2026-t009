@@ -1,38 +1,74 @@
-# DevFest Hackathon 2026 提出用リポジトリ
+# ここだけ — 近づくと、ひらく。
 
-  DevFest Hackathon 2026 のチームの **最終提出用** リポジトリです。提出期限までに、作品のコードと資料をこのリポジトリに置いてください。
+誰かがその場所に残した投稿を、**実際に近づいたときだけ読める**散歩SNSです。
 
-  このリポジトリは **公開（public）** です。開催中も、運営・審査員・ほかの参加者が見られます。
+地図には投稿の「予告」だけが見えます。本文と写真は、投稿者が決めた範囲（100m・300m・500m）に入った人だけが読めます。写真を見た時点で終わってしまう普通のSNSと違い、誰かの発見が「自分で外に出て確かめる」きっかけになります。
 
-  ## はじめに
+- カテゴリ：観光
+- デプロイ先：（デプロイ後に Firebase Hosting の URL をここに書く）
+- 説明書：[docs/product.md](docs/product.md)
+- 使用した素材・ライブラリ：[docs/credits.md](docs/credits.md)
 
-  1. GitHub から届いた招待を受け入れてください（招待の期限は 7 日です）
-  2. このリポジトリを clone して、提出物を置いてください
+## 審査・デモで試すとき
 
-  招待の期限が切れたときや、メンバーが変わったときは、運営に連絡してください。
+現地に行けない人のために **デモモード** があります。右上のボタンを「デモ：タップで移動」に切り替えると、地図をタップした場所を現在地として扱います。URL に `?demo=1` を付けて開いても同じです。
 
-  ## 開発用のリポジトリは別に作ることをおすすめします
+## しくみ
 
-  このリポジトリでは **GitHub Actions と GitHub Pages が使えません**。CI やデプロイ、Pages での公開をしたいときは、チームで開発用のリポジトリを別に作ってください。
+| 部分 | 使っているもの |
+| --- | --- |
+| 画面 | React + Vite、Google Maps JavaScript API（`@vis.gl/react-google-maps`） |
+| ログイン | Firebase Authentication（匿名ログイン） |
+| データ | Cloud Firestore |
+| 写真 | Cloud Storage for Firebase |
+| 距離の判定 | Cloud Functions for Firebase（`asia-northeast1`） |
+| 公開 | Firebase Hosting |
 
-  - 開発用のリポジトリは、チームのメンバーのアカウントや、チームで作った Organization に作ってください
-  - 開発はそちらで進めて、提出期限までに最終版のコードと資料をこのリポジトリに push してください
-  - 審査はこのリポジトリの内容で行います。開発用のリポジトリにしかないものは、審査の対象になりません
-  - デプロイした作品の URL があれば、この README に書いてください
+本文と写真は、ブラウザから直接は読めないようにしています（`firestore.rules`・`storage.rules`）。読むときは Cloud Functions の `openDrop` が、送られてきた現在地と投稿の場所の距離を計算し、範囲内のときだけ返します。GPS の誤差は最大 30m まで考慮します。
 
-  ## 秘密情報をコミットしない
+ただし現在地は端末が申告する値なので、GPS の偽装までは防げません。「現地にいることの証明」ではなく「近づくと読める体験」として設計しています。
 
-  API キー・パスワード・サービスアカウントの鍵などは、**絶対にコミットしないでください**。公開リポジトリなので、push
-  した時点で誰でも見られます。開発用のリポジトリから持ってくるときも、履歴ごと push すると、過去のコミットに含まれる秘密情報も公開されます。
+投稿者のプライバシーのため、投稿の場所は現在地ではなく地図上で自分で選びます。今いる場所にそのまま置こうとすると注意を出します。
 
-  - 秘密情報は `.env` や `.dev.vars` などに書き、コミットしない（`.gitignore` に入れてあります）
-  - 誤って push したら、すぐにキー（鍵）を無効にして作り直し、運営に連絡してください。履歴から消すだけでは不十分です
-  - GitHub の push protection が、よく知られた形式のキーの push を止めることがあります。止められたら、そのキーをコミットから外してください
+## 開発
 
-  ## 提出
+必要なもの：Node.js 22、Java 21（エミュレーター用）
 
-  提出の方法と締切は、運営からの案内に従ってください。提出期限を過ぎると、このリポジトリは読み取り専用になり、push できなくなります。
+```bash
+npm run setup
+```
 
-  ## ライセンス
+ローカルのエミュレーターで動かす場合（クラウドのリソースは使いません）：
 
-  [MIT License](LICENSE) です。ほかのライセンスにしたいときは、LICENSE を書き換えてください。
+```bash
+cp web/.env.example web/.env.local   # VITE_USE_EMULATORS=true と VITE_FIREBASE_PROJECT_ID=demo-kokodake にする
+npx firebase emulators:start --only auth,firestore,functions,storage --project demo-kokodake
+npm run dev
+```
+
+Google Maps の API キーがないときは、地図の代わりに簡易レーダー表示になります。
+
+距離計算のテスト：
+
+```bash
+npm test
+```
+
+## デプロイ
+
+1. Firebase コンソールで、Google Cloud プロジェクト `project-2c1371cc-714f-45d0-933` を Firebase に追加し、Blaze プランにする
+2. Authentication で「匿名」を有効にする
+3. Firestore と Storage を作る（場所は `asia-northeast1`）
+4. プロジェクトの設定 → マイアプリ → ウェブアプリを追加し、表示された値を `web/.env.local` に入れる
+5. Google Cloud コンソールで Maps JavaScript API を有効にし、API キーを作って `web/.env.local` に入れる。キーには HTTP リファラー制限（`https://<プロジェクト>.web.app/*` と `http://localhost:5173/*`）をかける
+6. デプロイする
+
+```bash
+npx firebase login
+```
+
+```bash
+npm run deploy
+```
+
+`.env.local` は `.gitignore` に入っているのでコミットされません。API キーやクレジットコードはこのリポジトリに書かないでください。

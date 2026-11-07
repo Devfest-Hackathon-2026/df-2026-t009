@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 予告・位置・範囲は誰でも読める。書き込みは Cloud Functions 経由のみ。
+    match /drops/{dropId} {
+      allow read: if true;
+      allow write: if false;
+
+      // 本文と写真の場所。クライアントからは読めない（openDrop が距離を確かめて返す）。
+      match /private/{doc} {
+        allow read, write: if false;
+      }
+    }
+
+    // 自分が開いた投稿・置いた投稿の記録。本人だけが読める。
+    match /users/{uid}/{document=**} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+  }
+}
