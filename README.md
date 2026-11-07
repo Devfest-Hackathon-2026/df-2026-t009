@@ -94,6 +94,7 @@ node scripts/e2e.mjs web/.env.local
 3. Firestore（`asia-northeast1`）と Storage を作る
 4. プロジェクトの設定 → マイアプリ → ウェブアプリを追加し、表示された値を `web/.env.local` に入れる
 5. Google Cloud コンソールで Maps JavaScript API を有効にし、API キーを作って `web/.env.local` に入れる。キーには HTTP リファラー制限（`https://<プロジェクト>.web.app/*`、`https://<プロジェクト>.firebaseapp.com/*`、`http://localhost:5173/*`）をかける
+   - 地図の見た目：Google Maps Platform の「地図のスタイル」で [docs/map-style.json](docs/map-style.json) を JSON として読み込んで保存する。「マップ管理」で JavaScript・ベクター（チルトとローテーションを有効）のマップ ID を作り、ライトモードにそのスタイルを選ぶ。マップ ID を `web/.env.local` の `VITE_GOOGLE_MAPS_MAP_ID` に入れる
 6. デプロイする
 
 ```bash

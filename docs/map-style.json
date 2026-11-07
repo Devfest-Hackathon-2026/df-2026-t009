@@ -1,0 +1,26 @@
+{
+  "variant": "light",
+  "backgroundColor": "#f6f6f4",
+  "styles": [
+    { "id": "natural.land", "geometry": { "fillColor": "#f6f6f4" } },
+    { "id": "natural.land.landCover", "geometry": { "fillColor": "#f1f2ee" } },
+    { "id": "natural.water", "geometry": { "fillColor": "#d9e4ec" }, "label": { "textFillColor": "#8aa0b2", "textStrokeColor": "#ffffff" } },
+    { "id": "pointOfInterest", "label": { "visible": false } },
+    { "id": "pointOfInterest.recreation.park", "geometry": { "fillColor": "#e4ece0" }, "label": { "visible": false } },
+    { "id": "pointOfInterest.other.school", "geometry": { "fillColor": "#efefec" } },
+    { "id": "pointOfInterest.transit", "label": { "visible": true, "pinFillColor": "#9a9a9a", "pinGlyphColor": "#ffffff", "pinOutlineColor": "#ffffff", "textFillColor": "#8a8a8a", "textStrokeColor": "#ffffff" } },
+    { "id": "infrastructure.building", "geometry": { "fillColor": "#ececea", "strokeColor": "#e0e0dc" } },
+    { "id": "infrastructure.urbanArea", "geometry": { "fillColor": "#f3f3f0" } },
+    { "id": "infrastructure.businessCorridor", "geometry": { "fillColor": "#f3f3f0" } },
+    { "id": "infrastructure.roadNetwork.road", "geometry": { "fillColor": "#ffffff", "strokeColor": "#e3e3df" }, "label": { "textFillColor": "#a3a3a3", "textStrokeColor": "#ffffff" } },
+    { "id": "infrastructure.roadNetwork.road.highway", "geometry": { "fillColor": "#ffffff", "strokeColor": "#d6d6d2" }, "label": { "visible": false } },
+    { "id": "infrastructure.roadNetwork.road.arterial", "geometry": { "fillColor": "#ffffff", "strokeColor": "#dcdcd8" } },
+    { "id": "infrastructure.roadNetwork.roadShield", "label": { "visible": false } },
+    { "id": "infrastructure.roadNetwork.roadSign", "label": { "visible": false } },
+    { "id": "infrastructure.railwayTrack", "geometry": { "fillColor": "#d4d4d0", "strokeColor": "#d4d4d0" } },
+    { "id": "infrastructure.transitStation", "label": { "pinFillColor": "#9a9a9a", "pinGlyphColor": "#ffffff", "textFillColor": "#7d7d7d", "textStrokeColor": "#ffffff" } },
+    { "id": "political", "label": { "textFillColor": "#a8a8a8", "textStrokeColor": "#ffffff" } },
+    { "id": "political.border", "geometry": { "strokeColor": "#cfcfcb" } },
+    { "id": "political.neighborhood", "label": { "textFillColor": "#b4b4b4" } }
+  ]
+}
