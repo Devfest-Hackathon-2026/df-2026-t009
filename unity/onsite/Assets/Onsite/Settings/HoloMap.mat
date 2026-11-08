@@ -25,15 +25,15 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _ContourStep: 4
-    - _ContourWidth: 0.9
-    - _EdgeStrength: 1.6
-    - _FogEnd: 1400
-    - _FogStart: 250
-    - _GridSize: 50
+    - _ContourStep: 3
+    - _ContourWidth: 0.8
+    - _EdgeStrength: 1.3
+    - _FogEnd: 1800
+    - _FogStart: 350
+    - _GridSize: 40
     - _MajorEvery: 5
-    - _Mono: 0.55
-    - _Scan: 0.12
+    - _Mono: 0.42
+    - _Scan: 0.08
     m_Colors:
     - _Accent: {r: 1, g: 0.7, b: 0.28999996, a: 1}
     - _Shadow: {r: 0.02, g: 0.035, b: 0.044999972, a: 1}

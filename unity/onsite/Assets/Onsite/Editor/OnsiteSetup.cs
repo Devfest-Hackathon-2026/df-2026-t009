@@ -62,6 +62,27 @@ namespace Onsite.EditorTools
             PlayerSettings.WebGL.maximumMemorySize = 4096;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.WebGL.dataCaching = true;
+            PlayerSettings.WebGL.nameFilesAsHashes = true;
+            PlayerSettings.WebGL.emscriptenArgs = "-sPTHREAD_POOL_SIZE=16"; // Cesium が使うスレッドを最初から用意する // 更新のたびに名前が変わり、古いキャッシュを使わない
+            // 読み込み画面はアプリ自身のもの（他社のロゴを出さない）
+            PlayerSettings.WebGL.template = "PROJECT:Onsite";
+            PlayerSettings.SplashScreen.show = false;
+            PlayerSettings.SplashScreen.showUnityLogo = false;
+
+            // コードから名前で探すシェーダーは、ビルドから外されないよう必ず含める
+            var gs = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/GraphicsSettings.asset")[0]);
+            var list = gs.FindProperty("m_AlwaysIncludedShaders");
+            foreach (var name in new[] { "Onsite/Glow", "Onsite/HoloMap" })
+            {
+                var sh = Shader.Find(name);
+                if (sh == null) continue;
+                bool has = false;
+                for (int i = 0; i < list.arraySize; i++) if (list.GetArrayElementAtIndex(i).objectReferenceValue == sh) has = true;
+                if (has) continue;
+                list.InsertArrayElementAtIndex(list.arraySize);
+                list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = sh;
+            }
+            gs.ApplyModifiedPropertiesWithoutUndo();
 
             AssetDatabase.SaveAssets();
             Debug.Log("[onsite] プロジェクトの設定が終わりました");
@@ -79,7 +100,8 @@ namespace Onsite.EditorTools
                 scenes = new[] { ScenePath },
                 locationPathName = "../build/webgl",
                 target = BuildTarget.WebGL,
-                options = BuildOptions.None,
+                // ONSITE_DEV=1 なら、関数名の残る開発用ビルド（不具合の場所を調べる用）
+                options = System.Environment.GetEnvironmentVariable("ONSITE_DEV") == "1" ? BuildOptions.Development : BuildOptions.None,
             });
             Report(r);
         }

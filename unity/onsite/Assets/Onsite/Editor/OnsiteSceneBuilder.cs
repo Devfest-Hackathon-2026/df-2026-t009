@@ -112,7 +112,14 @@ namespace Onsite.EditorTools
             bridge.AddComponent<DeviceBridge>();
             var apiGo = new GameObject("OnsiteApi");
             var apiType = System.Type.GetType("Onsite.Net.OnsiteApi, Assembly-CSharp");
-            if (apiType != null) apiGo.AddComponent(apiType);
+            if (apiType != null)
+            {
+                var api = apiGo.AddComponent(apiType);
+                // Firebase の設定（鍵は Resources の Git 管理外アセット）をつなぐ
+                var so = new SerializedObject(api);
+                so.FindProperty("config").objectReferenceValue = AssetDatabase.LoadAssetAtPath<FirebaseConfig>($"{Resources}/FirebaseConfig.asset");
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
 
             // UI
             var uiGo = new GameObject("HUD");

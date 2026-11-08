@@ -33,7 +33,7 @@ namespace Onsite.App
                 if (!string.IsNullOrEmpty(uid))
                 {
                     yield return Api.GetProfile(uid, p => { if (Uid == uid && version == identityVersion) Profile = p; });
-                    yield return Api.ListOwn<JoinedEventEntry>(uid, "joinedEvents", "joinedAt", entries =>
+                    yield return Api.ListOwn<JoinedEventEntry>(uid, "events", "joinedAt", entries =>
                     {
                         if (Uid != uid || version != identityVersion) return;
                         JoinedIds.Clear(); foreach (var e in entries) JoinedIds.Add(e.id);

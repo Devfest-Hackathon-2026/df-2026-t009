@@ -6,6 +6,7 @@ using UnityEngine;
 namespace Onsite.Net
 {
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(-100)] // 画面より先に起動して、二重に作られないようにする
     public sealed class OnsiteApi : MonoBehaviour
     {
         [SerializeField] private FirebaseConfig config = null;
@@ -39,6 +40,8 @@ namespace Onsite.Net
                 Destroy(gameObject);
                 return;
             }
+            // シーンで未設定なら Resources から読む（鍵は Git 管理外のアセット）
+            if (config == null) config = Resources.Load<FirebaseConfig>("FirebaseConfig");
             if (config == null)
             {
                 Report("OnsiteApi に FirebaseConfig を設定してください");

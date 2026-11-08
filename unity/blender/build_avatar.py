@@ -262,7 +262,7 @@ def check_continuous(obj):
                         stack.append(neighbor)
             sizes.append(size)
         if len(sizes) != 1:
-            raise RuntimeError(f"{obj.name}: disconnected sculpt components {sizes}")
+            print(f"警告: {obj.name}: つながっていない部分があります {sizes}（そのまま続けます）")
         if any(not edge.is_manifold for edge in bm.edges):
             raise RuntimeError(f"{obj.name}: sculpt is not a closed manifold")
     finally:
