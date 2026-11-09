@@ -164,8 +164,10 @@ namespace Onsite.App.Hud
             placedGauge.Value = Mathf.Clamp01(placed / 12f); placedGauge.tooltip = "今日置いた数 " + placed;
             // スマホでは投稿を選んでいる間、下の集計を隠す（シートと重なるため）
             bool phone = parent != null && parent.ClassListContains("phone");
-            status.style.display = mapVisible && !placing && !(phone && app.Selected != null) ? DisplayStyle.Flex : DisplayStyle.None;
-            signals.style.display = mapVisible && !placing ? new StyleEnum<DisplayStyle>(StyleKeyword.Null) : new StyleEnum<DisplayStyle>(DisplayStyle.None);
+            // 地図を主役にするため、今日の集計は地図の上に出さない（自分の画面で見られる）
+            status.style.display = DisplayStyle.None;
+            // 近くの予告の一覧は地図の上に出さない（地図の印とフィードで足りる）
+            signals.style.display = DisplayStyle.None;
             bool showSelected = mapVisible && !placing && app.Selected != null;
             if (selectedVisible != showSelected)
             {

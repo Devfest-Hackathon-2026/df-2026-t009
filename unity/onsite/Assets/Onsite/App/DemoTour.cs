@@ -87,7 +87,7 @@ namespace Onsite.App
 
             IEnumerator Intro()
             {
-                caption.Show("行かないと、読めない SNS。", "ONSITE — 近づくと、ひらく。");
+                caption.Show("行かないと、読めない SNS。", "ONSITE / 近づくと、ひらく。");
                 if (string.IsNullOrEmpty(app.Nickname))
                 {
                     app.ShowOnboarding();
@@ -138,7 +138,7 @@ namespace Onsite.App
             {
                 app.ShowMap(); app.ClearSelection();
                 CameraTo(260, 55, 3, 0);
-                caption.Show("浅草を歩くと――");
+                caption.Show("浅草を、歩いてみる。");
                 float started = Time.unscaledTime;
                 bool announced = false;
                 double stop = StopDistance();

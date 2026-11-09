@@ -501,3 +501,14 @@ Label { white-space: normal; text-shadow: 0 2px 8px rgba(2,6,10,0.85); }
 .phone .tour-end-address { font-size: 18px; }
 
 .phone .tour-caption { bottom: 130px; }
+
+/* ===== 画面を静かに：地図が主役。出すのは印・選んだ投稿・知らせだけ ===== */
+.field-signals { display: none; }
+.header-eyebrow, .header-japanese, .gps-label, .header-band { display: none; }
+.wordmark { font-size: 44px; letter-spacing: 12px; }
+.field-coordinates { font-size: 14px; margin-top: 0; }
+.hud-level { width: auto; border-left-width: 0; padding: 0; align-items: flex-end; }
+.hud-level .xp-number, .hud-level .xp-caption, .hud-level .trail-distance, .hud-level .segment-bar { display: none; }
+.hud-level .level { font-size: 26px; color: #7FE3FF; }
+.phone .wordmark { font-size: 36px; letter-spacing: 10px; }
+.phone .hud-level .level { font-size: 22px; }
