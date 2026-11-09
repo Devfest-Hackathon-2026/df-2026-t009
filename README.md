@@ -11,6 +11,7 @@
 - 軽い版（立体地図が重い端末向け）：https://kokodake-t009.web.app/lite
 - 自動デモ（字幕つきで勝手に進む）：ブラウザ版は https://kokodake-t009.web.app/?tour=1 、アプリは左上のロゴを長押し →「自動デモ」
 - 説明書：[docs/product.md](docs/product.md)
+- アーキテクチャ図（Mermaid）：[docs/architecture.md](docs/architecture.md)
 - 使用した素材・ライブラリ：[docs/credits.md](docs/credits.md)
 
 ## 審査・デモで試すとき
