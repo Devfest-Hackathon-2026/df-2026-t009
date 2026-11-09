@@ -107,7 +107,7 @@ namespace Onsite.App
             }
             if (World != null) World.OriginChanged += OriginChanged;
             bridge.OnLocation += LocationChanged;
-            bridge.LocationError += Toast;
+            bridge.LocationError += LocationProblem;
             bridge.PhotoError += Toast;
             bridge.OnPhotoReady += PhotoReady;
             bridge.StartLocation();
@@ -183,8 +183,17 @@ namespace Onsite.App
             hud.Refresh();
         }
 
+        // アプリ版には URL が無いので、画面のボタンから「次の起動だけ有効な指定」を入れられるようにする
+        static readonly HashSet<string> launchFlags = new HashSet<string>();
+        public static void RestartWith(params string[] flags)
+        {
+            launchFlags.Clear(); foreach (var f in flags) launchFlags.Add(f);
+            UnityEngine.SceneManagement.SceneManager.LoadScene(0);
+        }
+
         static bool QueryFlag(string key)
         {
+            if (launchFlags.Contains(key)) return true;
             if (!Uri.TryCreate(Application.absoluteURL, UriKind.Absolute, out var uri)) return false;
             return uri.Query.TrimStart('?').Split('&').Any(s => s == key + "=1");
         }
@@ -261,6 +270,16 @@ namespace Onsite.App
             if (Orbit != null) Orbit.IsOverUi = null;
             (currentScreen as IDisposable)?.Dispose();
             if (portraitFocus != null) Destroy(portraitFocus.gameObject);
+        }
+
+        // 位置情報のエラーは日本語で。デモ中は現在地を使わないので出さない
+        void LocationProblem(string message)
+        {
+            if (DemoMode) return;
+            var m = message ?? "";
+            if (m.StartsWith("1")) Toast("位置情報が許可されていません。ブラウザーの設定で許可するか、デモモードで試せます");
+            else if (m.StartsWith("2") || m.StartsWith("3")) Toast("現在地を取得できませんでした。屋外で少し待つか、デモモードで試せます");
+            else Toast(m);
         }
 
         void LocationChanged(double lat, double lng, float accuracy)
@@ -521,6 +540,9 @@ namespace Onsite.App
             panel.Body.Add(UiKit.Button("GPS を再取得", () => bridge?.StartLocation()));
             panel.Body.Add(UiKit.Button("UNLOCK 演出", () => sequence.Play(false, () => { })));
             panel.Body.Add(UiKit.Button("COMPLETE 演出", () => sequence.Play(true, () => { })));
+            // 紹介動画の撮影用：アプリでも自動デモを流せる（画面録画と組み合わせる）
+            panel.Body.Add(UiKit.Button("自動デモ（字幕つき・約1分45秒）", () => RestartWith("tour")));
+            panel.Body.Add(UiKit.Button("プレゼン（自動デモ＋説明・約3分半）", () => RestartWith("tour", "pres")));
             panel.Body.Add(UiKit.Label("通信 " + (Api?.Auth?.IsSignedIn == true ? "ONLINE" : "OFFLINE") + " / GPS " + (HasLocation ? "FIX" : "WAIT"), "mono"));
             Screen("debug", panel);
         }

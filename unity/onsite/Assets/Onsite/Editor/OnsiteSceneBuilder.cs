@@ -34,6 +34,7 @@ namespace Onsite.EditorTools
             s.firebaseProjectId = Get("VITE_FIREBASE_PROJECT_ID");
             s.firebaseStorageBucket = Get("VITE_FIREBASE_STORAGE_BUCKET");
             s.mapsApiKey = Get("VITE_GOOGLE_MAPS_API_KEY");
+            s.tilesApiKey = Get("VITE_GOOGLE_MAPS_TILES_KEY");
             EditorUtility.SetDirty(s);
 
             var f = Load<FirebaseConfig>($"{Resources}/FirebaseConfig.asset");

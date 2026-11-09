@@ -12,6 +12,8 @@ namespace Onsite.Map
         public string firebaseProjectId = "kokodake-t009";
         public string firebaseStorageBucket;
         public string mapsApiKey;
+        // アプリ（Android）用：立体地図だけに使える鍵。アプリは送り元の住所を付けられないため、ウェブ用の鍵とは分ける
+        public string tilesApiKey;
 
         static OnsiteSecrets _cached;
         public static OnsiteSecrets Load()
@@ -20,6 +22,11 @@ namespace Onsite.Map
             return _cached;
         }
 
-        public string GoogleTilesUrl => $"https://tile.googleapis.com/v1/3dtiles/root.json?key={mapsApiKey}";
+        public string GoogleTilesUrl =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            $"https://tile.googleapis.com/v1/3dtiles/root.json?key={mapsApiKey}";
+#else
+            $"https://tile.googleapis.com/v1/3dtiles/root.json?key={(string.IsNullOrEmpty(tilesApiKey) ? mapsApiKey : tilesApiKey)}";
+#endif
     }
 }

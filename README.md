@@ -5,12 +5,11 @@
 地図には投稿の「予告」だけが見えます。本文と写真は、投稿者が決めた範囲（100m・300m・500m・1km）に入った人だけがひらけます。写真を見た時点で終わってしまう普通の SNS と違い、誰かの発見が「自分で出かけて確かめる」きっかけになります。投稿をつないだ「巡りルート」には開催期間を付けられるので、祭りやツアーの期間限定の巡りにも使えます。
 
 - カテゴリ：観光
+- **本体は Android アプリ**（Unity で作った立体地図のアプリ。ビルド方法は下の「Unity 版のビルド」）。ブラウザ版は、アプリを入れずに確認するための入口
 - 公開 URL：https://kokodake-t009.web.app （Unity 版が開きます）
 - 審査・デモ用：https://kokodake-t009.web.app/?demo=1 （浅草から始まり、地図をタップして移動できます）
 - 軽い版（立体地図が重い端末向け）：https://kokodake-t009.web.app/lite
-- デモ動画（約 1 分 45 秒）：https://kokodake-t009.web.app/demo/onsite-demo.webm
-- 自動デモ（字幕つきで勝手に進む）：https://kokodake-t009.web.app/?tour=1
-- Android アプリ（Unity 版の APK）：https://kokodake-t009.web.app/demo/onsite.apk
+- 自動デモ（字幕つきで勝手に進む）：ブラウザ版は https://kokodake-t009.web.app/?tour=1 、アプリは左上のロゴを長押し →「自動デモ」
 - 説明書：[docs/product.md](docs/product.md)
 - 使用した素材・ライブラリ：[docs/credits.md](docs/credits.md)
 

@@ -129,7 +129,7 @@ namespace Onsite.EditorTools
             var jdk = System.Environment.GetEnvironmentVariable("ONSITE_JDK");
             if (!string.IsNullOrEmpty(jdk)) UnityEditor.Android.AndroidExternalToolsSettings.jdkRootPath = jdk;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
-            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+            PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64 | AndroidArchitecture.X86_64; // 実機（ARM）と、パソコン上の仮想 Android（x86）の両方で速く動くように
             PlayerSettings.SetIl2CppCodeGeneration(NamedBuildTarget.Android, UnityEditor.Build.Il2CppCodeGeneration.OptimizeSize);
             var r = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
@@ -144,6 +144,7 @@ namespace Onsite.EditorTools
         static void EnsureScene()
         {
             Setup();
+            OnsiteSceneBuilder.ImportSecrets(); // 鍵は毎回 .env.local から読み直す
             if (!File.Exists(ScenePath)) BuildScene();
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         }

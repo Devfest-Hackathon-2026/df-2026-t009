@@ -512,3 +512,78 @@ Label { white-space: normal; text-shadow: 0 2px 8px rgba(2,6,10,0.85); }
 .hud-level .level { font-size: 26px; color: #7FE3FF; }
 .phone .wordmark { font-size: 36px; letter-spacing: 10px; }
 .phone .hud-level .level { font-size: 22px; }
+
+/* スクロールバーは細い光の線だけ（標準の灰色の太い棒を出さない） */
+.onsite-root .unity-scroller--horizontal { display: none; }
+.onsite-root .unity-scroller--vertical { width: 4px; min-width: 4px; background-color: rgba(127,227,255,0.04); border-width: 0; }
+.onsite-root .unity-scroller--vertical .unity-base-slider__tracker { background-color: rgba(0,0,0,0); border-width: 0; }
+.onsite-root .unity-scroller--vertical .unity-base-slider__dragger { background-color: rgba(127,227,255,0.35); border-width: 0; width: 4px; left: 0; }
+.onsite-root .unity-scroller__low-button, .onsite-root .unity-scroller__high-button { display: none; }
+
+/* 発表カード。背景は一枚だけにして、本文の交差中も地図の透け方を一定に保つ。 */
+.tour-presentation-layer {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    background-color: rgba(2,6,10,0.88);
+}
+.tour-presentation-frame {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+    align-items: center; justify-content: center; padding: 40px 0;
+}
+.tour-presentation-copy { width: 84%; max-width: 1200px; align-items: center; flex-shrink: 0; }
+.tour-presentation-kicker {
+    max-width: 100%; margin: 0 0 26px; padding: 0;
+    font-size: 17px; letter-spacing: 2px; color: #7FE3FF;
+    white-space: normal; -unity-text-align: middle-center; flex-shrink: 0;
+}
+/* 日本語の見出しは Zen、英字のブランド名だけは細い Barlow にする。 */
+.tour-presentation-heading {
+    width: 100%; margin: 0 0 26px; padding: 0;
+    -unity-font-definition: url("project://database/Assets/Onsite/Fonts/ZenKakuGothicNew-Regular.ttf");
+    font-size: 56px; letter-spacing: 2px; color: #EAFBFF;
+    white-space: normal; -unity-text-align: middle-center; flex-shrink: 0;
+    text-shadow: 0 0 16px rgba(127,227,255,0.30);
+}
+.tour-presentation-body {
+    width: 100%; align-items: center; flex-shrink: 0;
+    -unity-font-definition: url("project://database/Assets/Onsite/Fonts/ZenKakuGothicNew-Regular.ttf");
+    font-size: 29px; color: #C3DDE4;
+}
+.tour-presentation-line {
+    width: 100%; margin: 10px 0 0; padding: 0; flex-shrink: 0;
+    white-space: normal; -unity-text-align: middle-center;
+}
+.tour-presentation-copy > .tour-presentation-band {
+    width: 76%; height: 10px; min-height: 10px; margin-top: 30px; margin-bottom: 0;
+}
+.tour-presentation-brand .tour-presentation-heading, .tour-presentation-end .tour-presentation-heading {
+    -unity-font-definition: url("project://database/Assets/Onsite/Fonts/BarlowCondensed-Light.ttf");
+    font-size: 144px; letter-spacing: 32px;
+}
+.tour-presentation-end .tour-presentation-line { font-size: 34px; letter-spacing: 4px; }
+.tour-presentation-end .tour-presentation-line.mono {
+    margin-top: 48px; font-size: 20px; letter-spacing: 1px; color: #7FA3AB;
+}
+
+/* 縦横比とウィンドウの大きさに合わせ、長い説明も画面内で折り返す。 */
+.narrow .tour-presentation-copy { width: 88%; }
+.narrow .tour-presentation-heading { font-size: 48px; }
+.narrow .tour-presentation-body { font-size: 27px; }
+.compact .tour-presentation-frame { padding-top: 24px; padding-bottom: 24px; }
+.compact .tour-presentation-kicker { margin-bottom: 18px; font-size: 16px; }
+.compact .tour-presentation-heading { font-size: 44px; margin-bottom: 18px; }
+.compact .tour-presentation-body { font-size: 25px; }
+.compact .tour-presentation-line { margin-top: 8px; }
+.compact .tour-presentation-copy > .tour-presentation-band { margin-top: 22px; }
+.compact .tour-presentation-brand .tour-presentation-heading,
+.compact .tour-presentation-end .tour-presentation-heading { font-size: 112px; letter-spacing: 26px; }
+.compact .tour-presentation-end .tour-presentation-line { font-size: 30px; letter-spacing: 3px; }
+.compact .tour-presentation-end .tour-presentation-line.mono { margin-top: 34px; font-size: 19px; letter-spacing: 1px; }
+.phone .tour-presentation-copy { width: 88%; }
+.phone .tour-presentation-kicker { font-size: 14px; letter-spacing: 1px; margin-bottom: 22px; }
+.phone .tour-presentation-heading { font-size: 38px; letter-spacing: 1px; margin-bottom: 22px; }
+.phone .tour-presentation-body { font-size: 24px; }
+.phone .tour-presentation-line { margin-top: 14px; }
+.phone .tour-presentation-brand .tour-presentation-heading,
+.phone .tour-presentation-end .tour-presentation-heading { font-size: 96px; letter-spacing: 22px; }
+.phone .tour-presentation-end .tour-presentation-line { font-size: 30px; letter-spacing: 2px; }
+.phone .tour-presentation-end .tour-presentation-line.mono { margin-top: 40px; font-size: 18px; letter-spacing: 1px; }

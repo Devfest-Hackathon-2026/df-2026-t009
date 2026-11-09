@@ -22,6 +22,7 @@ namespace Onsite.App
             readonly OnsiteApp app;
             readonly int firstStep;
             readonly Caption caption;
+            readonly PresentationCard presentation;
             readonly VisualElement inputCover;
             readonly Transform originalTarget;
             Transform routeFocus;
@@ -39,11 +40,16 @@ namespace Onsite.App
                 inputCover.style.left = inputCover.style.right = inputCover.style.top = inputCover.style.bottom = 0;
                 app.root.Add(inputCover);
                 caption = new Caption(); app.root.Add(caption);
+                if (QueryFlag("pres"))
+                {
+                    presentation = new PresentationCard(); app.root.Add(presentation);
+                }
             }
 
             public IEnumerator Run()
             {
                 inputCover.Focus();
+                if (presentation != null) yield return PresentationIntro();
                 if (firstStep == 1) yield return Intro();
                 else
                 {
@@ -80,9 +86,45 @@ namespace Onsite.App
 
                 if (firstStep <= 6) yield return Route();
                 yawDrift = 0;
-                caption.ShowEndCard();
-                yield return Hold(10);
+                if (presentation != null) yield return PresentationOutro();
+                else
+                {
+                    caption.ShowEndCard();
+                    yield return Hold(10);
+                }
                 // 終了カードと操作のロックは、そのまま保つ。
+            }
+
+            IEnumerator PresentationIntro()
+            {
+                // 名前が未登録でも地図を背景にし、既存の自己紹介デモはこの後で行う。
+                app.Screen("map");
+                caption.style.display = DisplayStyle.None;
+                yield return presentation.Show("DEVFEST GDGOC JAPAN HACKATHON 2026 / TEAM t009", "ONSITE", 6,
+                    new[] { "近づくと、ひらく。", "行かないと読めない、おでかけ SNS" });
+                yield return presentation.Show("01 / PROBLEM", "写真を見たら、満足してしまう。", 12,
+                    new[] { "SNS で旅先の景色を見ても、それで終わってしまう。", "観光情報は有名な場所に偏り、地元の小さな発見は届かない。" });
+                yield return presentation.Show("02 / IDEA", "中身は、その場所に行った人だけ。", 12,
+                    new[] { "地図に見えるのは「予告」だけ。", "投稿者が決めた範囲（100m〜1km）に入ると、本文と写真がひらく。", "ひらいた人だけが、寄せ書きできる。" });
+                yield return presentation.Show("03 / FOR TRAVEL", "巡りルートで、観光の回り方を共有。", 10,
+                    new[] { "投稿をつないでルートに。", "開催期間を付ければ、祭りやツアーの期間限定の巡りにも。" });
+                yield return presentation.Show("04 / DEMO", "浅草で、試してみる。", 5, Array.Empty<string>());
+                yield return presentation.Hide();
+                caption.style.display = DisplayStyle.Flex;
+            }
+
+            IEnumerator PresentationOutro()
+            {
+                caption.Hide(); caption.style.display = DisplayStyle.None;
+                app.ShowMap();
+                yield return presentation.Show("05 / HOW IT WORKS", "距離の判定は、サーバーで。", 14,
+                    new[] { "本文・写真・寄せ書きは Firestore のルールで遮断し、Cloud Functions が現在地との距離を確かめた時だけ返す。", "だから、通信を覗いても先には読めない。" });
+                yield return presentation.Show("06 / GOOGLE TECHNOLOGIES", "使った Google の技術", 14,
+                    new[] { "Firebase Hosting / Cloud Functions / Cloud Firestore / Cloud Storage / Authentication", "Google Maps Platform：Photorealistic 3D Tiles（Map Tiles API）", "Unity 6 ＋ Cesium で、立体地図を地形模型のように描画" });
+                yield return presentation.Show("07 / NEXT", "これから", 10,
+                    new[] { "存在ごと隠すシークレット投稿", "主催者向けの特典と集計", "通報と非表示" });
+                yield return presentation.Show(null, "ONSITE", 10,
+                    new[] { "近づくと、ひらく。", "kokodake-t009.web.app" }, endCard: true);
             }
 
             IEnumerator Intro()
@@ -288,6 +330,7 @@ namespace Onsite.App
                 if (app.Orbit != null) { app.Orbit.ScriptedMotion = false; app.Orbit.target = originalTarget; }
                 if (routeFocus != null) UnityEngine.Object.Destroy(routeFocus.gameObject);
                 inputCover.RemoveFromHierarchy(); caption.RemoveFromHierarchy();
+                presentation?.RemoveFromHierarchy();
             }
         }
     }
