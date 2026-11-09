@@ -19,4 +19,3 @@ namespace Onsite.Map
         public Task Prefetch(IReadOnlyList<(double lat, double lng)> points) => Task.CompletedTask;
     }
 }
-namespace UnityEngine.EventSystems { public class EventSystem { } }

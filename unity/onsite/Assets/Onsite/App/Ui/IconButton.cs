@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Onsite.Map;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -8,12 +8,19 @@ namespace Onsite.App.Ui
     public sealed class IconButton : Button
     {
         readonly Label badge;
-        public string Badge { get => badge.text; set { badge.text = value ?? ""; badge.style.display = string.IsNullOrEmpty(value) ? DisplayStyle.None : DisplayStyle.Flex; } }
-        public IconButton(string icon, string label, Action clicked) : base(clicked)
+        readonly VisualElement badgeGroup;
+        public string Badge { get => badge.text; set { badge.text = value ?? ""; badgeGroup.style.display = string.IsNullOrEmpty(value) ? DisplayStyle.None : DisplayStyle.Flex; } }
+        public IconButton(string icon, string label, Action clicked) : base(() => UiKit.Activate(clicked))
         {
             AddToClassList("icon-button"); tooltip = label;
+            var glow = new VisualElement { pickingMode = PickingMode.Ignore }; glow.AddToClassList("rail-touch-glow");
+            var glowCore = new VisualElement { pickingMode = PickingMode.Ignore }; glowCore.AddToClassList("rail-touch-glow-core"); glow.Add(glowCore); Add(glow);
+            UiKit.ButtonFeedback(this);
+            var active = new VisualElement { pickingMode = PickingMode.Ignore }; active.AddToClassList("rail-active-mark"); Add(active);
             Add(new LineIcon(icon)); Add(UiKit.Label(label, "rail-label section-label"));
-            badge = UiKit.Label("", "rail-badge mono"); Add(badge); Badge = "";
+            badgeGroup = new VisualElement { pickingMode = PickingMode.Ignore }; badgeGroup.AddToClassList("rail-unread");
+            var dot = new VisualElement(); dot.AddToClassList("unread-dot"); badgeGroup.Add(dot);
+            badge = UiKit.Label("", "rail-badge mono"); badgeGroup.Add(badge); Add(badgeGroup); Badge = "";
         }
     }
 
@@ -38,18 +45,23 @@ namespace Onsite.App.Ui
 
         void Paint(MeshGenerationContext context)
         {
-            var p = context.painter2D; p.strokeColor = resolvedStyle.color; p.lineWidth = 1.7f;
+            var p = context.painter2D; p.strokeColor = resolvedStyle.color; p.lineWidth = 1.5f;
             var s = Mathf.Min(contentRect.width, contentRect.height) / 32f;
             var origin = contentRect.center - Vector2.one * 16 * s;
             Vector2 P(float x, float y) => origin + new Vector2(x, y) * s;
             void L(float x, float y, float a, float b) => Draw.Line(p, P(x,y), P(a,b));
             void B(float x,float y,float w,float h) => Draw.Box(p,new Rect(P(x,y),new Vector2(w,h)*s));
+            for (int layer = 0; layer < 2; layer++)
+            {
+                var tint = resolvedStyle.color;
+                if (layer == 0) { tint.a *= .13f; p.lineWidth = 5; } else p.lineWidth = 1.5f;
+                p.strokeColor = tint;
             switch (icon)
             {
                 case "map":
                     p.BeginPath(); p.MoveTo(P(3,7)); p.LineTo(P(11,4)); p.LineTo(P(21,8)); p.LineTo(P(29,5)); p.LineTo(P(29,25)); p.LineTo(P(21,28)); p.LineTo(P(11,24)); p.LineTo(P(3,27)); p.ClosePath(); p.Stroke(); L(11,4,11,24); L(21,8,21,28); break;
                 case "feed": B(4,4,24,24); L(9,10,23,10); L(9,16,23,16); L(9,22,18,22); break;
-                case "post": case "plus": case "+": L(16,4,16,28); L(4,16,28,16); B(3,3,26,26); break;
+                case "post": case "plus": case "+": L(16,5,16,27); L(5,16,27,16); break;
                 case "notice":
                     L(5,24,27,24); L(8,24,8,13); L(24,24,24,13); L(8,13,12,7); L(12,7,20,7); L(20,7,24,13); L(14,28,18,28); L(16,3,16,6); break;
                 case "me":
@@ -66,6 +78,7 @@ namespace Onsite.App.Ui
                 case "close": L(7,7,25,25); L(7,25,25,7); break;
                 default:
                     Draw.Polygon(p,P(16,16),12*s,6,Mathf.PI/6); L(16,9,16,23); L(9,16,23,16); break;
+            }
             }
         }
     }

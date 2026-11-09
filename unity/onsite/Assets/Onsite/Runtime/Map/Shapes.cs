@@ -19,6 +19,28 @@ namespace Onsite.Map
             return m;
         }
 
+        /// <summary>
+        /// レーザーの線：白い芯＋色のにじみ、光の粒が流れる。建物に隠れず上に描く。
+        /// flow は 1m あたりの粒の数（0.02 なら 50m ごと）。
+        /// </summary>
+        public static Material LaserMaterial(Color hdr, float flow = 0, float flowSpeed = 1.2f, float core = 0.9f, float dash = 0, bool overlay = true)
+        {
+            var m = GlowMaterial(hdr, dash: dash);
+            m.SetFloat("_Profile", 1);
+            m.SetFloat("_Flow", flow);
+            m.SetFloat("_FlowSpeed", flowSpeed);
+            m.SetFloat("_Core", core);
+            m.SetFloat("_ZTest", overlay ? (float)UnityEngine.Rendering.CompareFunction.Always : (float)UnityEngine.Rendering.CompareFunction.LessEqual);
+            return m;
+        }
+
+        /// <summary>カメラから遠くても線の太さが画面上でほぼ一定に見えるようにする。</summary>
+        public static void KeepScreenWidth(LineRenderer lr, float pixelsAt400m)
+        {
+            var k = lr.gameObject.GetComponent<ScreenWidth>() ?? lr.gameObject.AddComponent<ScreenWidth>();
+            k.baseWidth = pixelsAt400m;
+        }
+
         public static LineRenderer Line(Transform parent, string name, Material mat, float width)
         {
             var go = new GameObject(name);
@@ -81,6 +103,22 @@ namespace Onsite.Map
             mr.sharedMaterial = mat;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             return go;
+        }
+    }
+
+    /// <summary>線の太さをカメラとの距離に比例させる（引くと細すぎて消える、寄ると太すぎる、を防ぐ）。</summary>
+    public class ScreenWidth : MonoBehaviour
+    {
+        public float baseWidth = 2f; // カメラから 400m のときの太さ(m)
+        LineRenderer _lr;
+        void Awake() => _lr = GetComponent<LineRenderer>();
+        void LateUpdate()
+        {
+            var cam = Camera.main;
+            if (cam == null || _lr == null || _lr.positionCount == 0) return;
+            var b = _lr.bounds.center;
+            float d = Vector3.Distance(cam.transform.position, b);
+            _lr.widthMultiplier = baseWidth * Mathf.Clamp(d / 400f, 0.15f, 6f);
         }
     }
 }

@@ -60,7 +60,7 @@ namespace Onsite.EditorTools
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.memorySize = 512;
             PlayerSettings.WebGL.maximumMemorySize = 4096;
-            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
+            PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.FullWithoutStacktrace;
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.nameFilesAsHashes = true;
             PlayerSettings.WebGL.emscriptenArgs = "-sPTHREAD_POOL_SIZE=16"; // Cesium が使うスレッドを最初から用意する // 更新のたびに名前が変わり、古いキャッシュを使わない
@@ -83,6 +83,21 @@ namespace Onsite.EditorTools
                 list.GetArrayElementAtIndex(list.arraySize - 1).objectReferenceValue = sh;
             }
             gs.ApplyModifiedPropertiesWithoutUndo();
+
+            // UI の基本テーマ（無いと入力欄などの部品が描かれない）。見た目は onsite.uss で上書きする
+            const string themePath = "Assets/Onsite/UI/OnsiteTheme.tss";
+            if (!File.Exists(themePath))
+            {
+                File.WriteAllText(themePath, "@import url(\"unity-theme://default\");\n");
+                AssetDatabase.ImportAsset(themePath);
+            }
+            var theme = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.ThemeStyleSheet>(themePath);
+            var panel = AssetDatabase.LoadAssetAtPath<UnityEngine.UIElements.PanelSettings>($"{SettingsDir}/HUDPanel.asset");
+            if (theme != null && panel != null && panel.themeStyleSheet != theme)
+            {
+                panel.themeStyleSheet = theme;
+                EditorUtility.SetDirty(panel);
+            }
 
             AssetDatabase.SaveAssets();
             Debug.Log("[onsite] プロジェクトの設定が終わりました");

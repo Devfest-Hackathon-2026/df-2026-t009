@@ -83,7 +83,7 @@ namespace Onsite.Map
                 m.root.transform.position = p;
                 Shapes.Ring(m.ring, p, (float)m.drop.radius, 128);
                 Shapes.Ring(m.hex, p, 9f, 6, Mathf.PI / 6);
-                m.top = p + Vector3.up * 70f;
+                m.top = p + Vector3.up * 40f;
             }
         }
 
@@ -97,7 +97,8 @@ namespace Onsite.Map
                 float k = m.state == DropState.Opened ? 0.6f : 2.2f;
                 m.hexMat.SetColor("_Color", c * (sel ? 4f : k));
                 m.beamMat.SetColor("_Color", c * (sel ? 2.5f : k * 0.6f));
-                m.ringMat.SetColor("_Color", c * (sel || m.state == DropState.InRange ? 1.4f : 0.35f));
+                // 範囲はデススト地図の「オレンジの区域線」のように
+                m.ringMat.SetColor("_Color", Amber * (sel || m.state == DropState.InRange ? 1.6f : 0.55f));
                 m.ringMat.SetFloat("_Pulse", m.state == DropState.InRange ? 3f : 0f);
                 m.beam.SetActive(m.state != DropState.Opened || sel);
             }
@@ -111,13 +112,15 @@ namespace Onsite.Map
             {
                 drop = d,
                 root = root,
-                ringMat = Shapes.GlowMaterial(Cyan * 0.4f),
-                hexMat = Shapes.GlowMaterial(Cyan * 2f),
+                ringMat = Shapes.LaserMaterial(Amber * 0.5f, flow: 0.01f, flowSpeed: 0.4f, core: 0.5f),
+                hexMat = Shapes.LaserMaterial(Cyan * 2f),
                 beamMat = Shapes.GlowMaterial(Cyan, fadeY: 1f),
             };
-            m.ring = Shapes.Line(root.transform, "Range", m.ringMat, 1.2f);
-            m.hex = Shapes.Line(root.transform, "Hex", m.hexMat, 2.2f);
-            m.beam = Shapes.Beam(root.transform, m.beamMat, 70f, 3.2f);
+            m.ring = Shapes.Line(root.transform, "Range", m.ringMat, 3.2f);
+            m.hex = Shapes.Line(root.transform, "Hex", m.hexMat, 3f);
+            m.beam = Shapes.Beam(root.transform, m.beamMat, 40f, 2.4f);
+            Shapes.KeepScreenWidth(m.ring, 2.2f);
+            Shapes.KeepScreenWidth(m.hex, 2.6f);
             return m;
         }
     }

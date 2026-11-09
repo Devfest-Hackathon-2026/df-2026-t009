@@ -45,8 +45,10 @@ namespace Onsite.Map
         public bool spin = false;
         GameObject _model;
         AvatarLook _look;
-        LineRenderer _halo;
-        Material _haloMat;
+        LineRenderer _halo, _scan;
+        Material _haloMat, _scanMat;
+        float _shownScale = 1;
+        public float scanRadius = 60f;
 
         public void Apply(AvatarLook look)
         {
@@ -67,14 +69,41 @@ namespace Onsite.Map
             _model.transform.localScale = Vector3.one * scale;
             if (_halo == null)
             {
-                _haloMat = Shapes.GlowMaterial(MarkerField.Cyan * 1.6f, pulse: 2.2f);
+                _haloMat = Shapes.LaserMaterial(MarkerField.Cyan * 1.8f);
                 _halo = Shapes.Line(transform, "Halo", _haloMat, 1.4f);
+                Shapes.KeepScreenWidth(_halo, 2.4f);
+                // 足もとから広がる走査の輪（ソナーのように一定間隔で）
+                _scanMat = Shapes.LaserMaterial(MarkerField.Cyan * 1.4f, core: 0.6f);
+                _scan = Shapes.Line(transform, "Scan", _scanMat, 1f);
+                Shapes.KeepScreenWidth(_scan, 1.8f);
             }
         }
 
+        /// <summary>像を地面から浮かせる高さ（像を選ぶ画面で、建物に隠れないようにする）。</summary>
+        public float lift;
+        float _shownLift;
+
         void LateUpdate()
         {
-            if (_halo != null) Shapes.Ring(_halo, transform.position + Vector3.up * 0.4f, scale * 0.55f, 64);
+            // 浮き上がりはなめらかに
+            _shownLift = Mathf.Lerp(_shownLift, lift, 1 - Mathf.Exp(-4f * Time.deltaTime));
+            if (_model != null)
+            {
+                _model.transform.localPosition = Vector3.up * _shownLift;
+                // 引いて見たときも像が見えるよう、カメラとの距離に合わせて大きくする
+                var cam = Camera.main;
+                float k = cam == null ? 1f : Mathf.Clamp(Vector3.Distance(cam.transform.position, _model.transform.position) / 90f, 1.2f, 7f);
+                _model.transform.localScale = Vector3.one * scale * k;
+                _shownScale = k;
+            }
+            if (_halo != null) Shapes.Ring(_halo, transform.position + Vector3.up * (_shownLift + 0.4f), scale * 0.55f * _shownScale, 64);
+            if (_scan != null)
+            {
+                float t = (Time.time % 3.2f) / 3.2f;
+                float ease = 1 - Mathf.Pow(1 - t, 3);
+                Shapes.Ring(_scan, transform.position + Vector3.up * (_shownLift + 0.6f), Mathf.Lerp(scale * 0.6f, scanRadius, ease) * Mathf.Max(1, _shownScale * 0.5f), 96);
+                _scanMat.SetColor("_Color", MarkerField.Cyan * 1.6f * (1 - t) * (1 - t));
+            }
             if (spin && _model != null) _model.transform.Rotate(0, 25f * Time.deltaTime, 0, Space.Self);
         }
 

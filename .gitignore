@@ -55,3 +55,7 @@ unity/onsite/Assets/Onsite/Resources/FirebaseConfig.asset*
 unity/onsite/Assets/Onsite/App/Tests~/*.exe
 unity/onsite/Assets/Onsite/App/Tests~/*.dll
 unity/onsite/.utmp/
+
+unity/briefs/ref-ds/
+unity/onsite/Assets/Resources/
+unity/onsite/Assets/Resources.meta

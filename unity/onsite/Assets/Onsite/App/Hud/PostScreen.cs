@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Onsite.App.Ui;
 using Onsite.Map;
@@ -27,9 +27,16 @@ namespace Onsite.App.Hud
             AddToClassList("post-screen");
             var panel = new HudPanel("PLACE SIGNAL", "ここに発見を残す", app.ShowMap); Add(panel);
             var scroll = new ScrollView(ScrollViewMode.Vertical); scroll.AddToClassList("screen-scroll"); panel.Body.Add(scroll);
-            scroll.Add(UiKit.Label(AppFormat.Coordinates(lat, lng), "mono"));
+            scroll.Add(UiKit.Label(AppFormat.Coordinates(lat, lng), "mono post-location"));
             if (app.HasLocation && GeoMath.Distance(app.Lat, app.Lng, lat, lng) < 30)
                 scroll.Add(UiKit.Label("現在地から30 m以内です。自宅や職場など、知られたくない場所には置かないでください。", "privacy-warning"));
+            scroll.Add(UiKit.Label("PHOTO / その場の景色", "section-label"));
+            preview = new Image { scaleMode = ScaleMode.ScaleToFit }; preview.AddToClassList("post-preview"); preview.style.display = DisplayStyle.None;
+            preview.RegisterCallback<GeometryChangedEvent>(_ => UpdatePhotoAspect()); scroll.Add(preview);
+            shutter = UiKit.Button("写真を撮る", app.TakePhoto);
+            remove = UiKit.Button("写真を外す", () => { jpeg = null; Dispose(); preview.image = null; preview.style.display = DisplayStyle.None; Validate(); });
+            var photoTools = UiKit.Row(shutter, remove); photoTools.AddToClassList("post-photo-tools"); scroll.Add(photoTools);
+            scroll.Add(UiKit.Rule());
             teaser = UiKit.Field("予告 / 誰でも見える", 60); scroll.Add(teaser);
             body = UiKit.Field("本文 / 近づいた人だけ読める", 600, true); scroll.Add(body);
             count = UiKit.Label("0 / 60    0 / 600", "mono caption"); scroll.Add(count);
@@ -42,12 +49,7 @@ namespace Onsite.App.Hud
                 button.AddToClassList("mono"); radiusButtons.Add(button); radii.Add(button);
             }
             scroll.Add(radii); UpdateRadius();
-            scroll.Add(UiKit.Label("PHOTO / その場の景色", "section-label"));
-            preview = new Image { scaleMode = ScaleMode.ScaleToFit }; preview.AddToClassList("post-preview"); preview.style.display = DisplayStyle.None; scroll.Add(preview);
-            shutter = UiKit.Button("写真を撮る", app.TakePhoto);
-            remove = UiKit.Button("写真を外す", () => { jpeg = null; Dispose(); preview.image = null; preview.style.display = DisplayStyle.None; Validate(); });
-            scroll.Add(UiKit.Row(shutter, remove));
-            submit = UiKit.Button("この場所に置く", () => app.SubmitPost(this, teaser.value, body.value, radius, jpeg), true); scroll.Add(submit);
+            submit = UiKit.Button("PLACE / この場所に置く", () => app.SubmitPost(this, teaser.value, body.value, radius, jpeg), true); scroll.Add(submit);
             scroll.Add(UiKit.Button("場所を選び直す", app.BeginPost));
             Validate();
         }
@@ -79,7 +81,7 @@ namespace Onsite.App.Hud
                 reduced.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0); reduced.Apply();
                 var encoded = reduced.EncodeToJPG(85);
                 Dispose(); photo = reduced; reduced = null; jpeg = encoded;
-                preview.image = photo; preview.style.display = DisplayStyle.Flex;
+                preview.image = photo; preview.style.display = DisplayStyle.Flex; UpdatePhotoAspect();
             }
             finally
             {
@@ -88,11 +90,16 @@ namespace Onsite.App.Hud
             }
             Validate();
         }
+        void UpdatePhotoAspect()
+        {
+            if (photo != null && preview.resolvedStyle.width > 1)
+                preview.style.height = preview.resolvedStyle.width * photo.height / photo.width;
+        }
         public void SetBusy(bool value)
         {
             busy = value; teaser.SetEnabled(!value); body.SetEnabled(!value); shutter.SetEnabled(!value);
             foreach (var button in radiusButtons) button.SetEnabled(!value);
-            submit.text = value ? "送信中…" : "この場所に置く"; Validate();
+            submit.text = value ? "TRANSMITTING / 送信中…" : "PLACE / この場所に置く"; Validate();
         }
         public void Dispose() { if (photo != null) UnityEngine.Object.Destroy(photo); photo = null; }
     }

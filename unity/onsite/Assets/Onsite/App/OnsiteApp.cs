@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -60,7 +60,24 @@ namespace Onsite.App
         readonly List<Callable.FootprintPoint> pendingFootprints = new List<Callable.FootprintPoint>();
         float savedDistance = 260, savedPitch = 52, savedYaw;
         bool portraitCamera;
+        bool tourRequested, tourDataReady;
+        DemoTour demoTour;
         Transform portraitFocus, savedCameraTarget;
+
+        void Awake()
+        {
+            Sound.Initialize();
+            // UI のタップを確実に受けるため、入力の窓口（EventSystem）を用意する
+            if (FindFirstObjectByType<UnityEngine.EventSystems.EventSystem>() == null)
+            {
+                var es = new GameObject("EventSystem");
+                es.AddComponent<UnityEngine.EventSystems.EventSystem>();
+                es.AddComponent<UnityEngine.EventSystems.StandaloneInputModule>();
+            }
+        }
+
+        // デモの出発点：浅草駅の近く（雷門まで約110m）
+        const double DemoLat = 35.70990, DemoLng = 139.79560;
 
         IEnumerator Start()
         {
@@ -69,7 +86,8 @@ namespace Onsite.App
             Trail = new TrailStore();
             completionShown.UnionWith(PlayerPrefs.GetString("onsite.completedEvents", "").Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries));
             long.TryParse(PlayerPrefs.GetString("onsite.noticesSeen", "0"), out noticesSeen);
-            DemoMode = PlayerPrefs.GetInt("onsite.demo", 0) == 1 || QueryFlag("demo");
+            tourRequested = QueryFlag("tour");
+            DemoMode = tourRequested || PlayerPrefs.GetInt("onsite.demo", 0) == 1 || QueryFlag("demo");
             ShareFootprints = PlayerPrefs.GetInt("onsite.shareFootprints", 0) == 1;
             World = FindFirstObjectByType<MapWorld>();
             Markers = FindFirstObjectByType<MarkerField>();
@@ -82,21 +100,38 @@ namespace Onsite.App
             avatar?.Apply(Look);
             BuildUi();
             UpdateTrail();
-            if (Orbit != null) Orbit.IsOverUi = IsOverUi;
+            if (Orbit != null)
+            {
+                Orbit.IsOverUi = IsOverUi;
+                if (tourRequested) Orbit.ScriptedMotion = true;
+            }
             if (World != null) World.OriginChanged += OriginChanged;
             bridge.OnLocation += LocationChanged;
             bridge.LocationError += Toast;
             bridge.PhotoError += Toast;
             bridge.OnPhotoReady += PhotoReady;
             bridge.StartLocation();
-            if (DemoMode) SetPosition(35.70881, 139.72221, 0);
+            if (DemoMode) SetPosition(DemoLat, DemoLng, 0);
+            // 確認・撮影用：?dist=150&pitch=40 でカメラ、?raw=1 で地図の効果を切る
+            if (Orbit != null && float.TryParse(QueryValue("dist"), out var qd)) Orbit.distance = qd;
+            if (Orbit != null && float.TryParse(QueryValue("pitch"), out var qp)) Orbit.pitch = qp;
+            Shader.SetGlobalFloat("_OnsiteRaw", QueryFlag("raw") ? 1 : 0);
             if (string.IsNullOrEmpty(Nickname)) ShowOnboarding();
-            if (QueryFlag("debug") && !string.IsNullOrEmpty(Nickname)) ShowDebug();
+            if (!tourRequested && QueryFlag("debug") && !string.IsNullOrEmpty(Nickname)) ShowDebug();
+            if (tourRequested)
+            {
+                int.TryParse(QueryValue("start"), out var firstStep);
+                // 録画用の自動デモでは、操作が無くても音を鳴らす（ブラウザー側で自動再生が許されているとき）
+                Sound.UserGesture();
+                demoTour = new DemoTour(this, Mathf.Clamp(firstStep, 1, 7));
+                StartCoroutine(demoTour.Run());
+            }
             yield return null;
             ApiBootstrap.Ensure();
             nextMeta = Time.unscaledTime + 15;
             if (Api == null)
             {
+                tourDataReady = true;
                 Toast("通信設定が見つかりません。OnsiteApi の FirebaseConfig を確認してください");
                 yield break;
             }
@@ -112,6 +147,7 @@ namespace Onsite.App
             DropsChanged();
             LogChanged();
             yield return RefreshMetadata();
+            tourDataReady = true;
         }
 
         void BuildUi()
@@ -120,6 +156,9 @@ namespace Onsite.App
             root.Clear();
             root.AddToClassList("onsite-root");
             root.pickingMode = PickingMode.Ignore;
+            root.RegisterCallback<PointerDownEvent>(_ => Sound.UserGesture(), TrickleDown.TrickleDown);
+            root.RegisterCallback<NavigationSubmitEvent>(_ => Sound.UserGesture(), TrickleDown.TrickleDown);
+            Sound.SetMapActive(true);
             var sheet = Resources.Load<StyleSheet>("onsite");
             if (sheet != null) root.styleSheets.Add(sheet);
             tags = new WorldTags(this);
@@ -138,6 +177,8 @@ namespace Onsite.App
                 root.EnableInClassList("narrow", root.resolvedStyle.width < 850);
                 root.EnableInClassList("compact", root.resolvedStyle.height < 950);
                 root.EnableInClassList("landscape", root.resolvedStyle.width > root.resolvedStyle.height);
+                // スマホ縦持ち：下にタブ、選んだ投稿は下から出るシート
+                root.EnableInClassList("phone", root.resolvedStyle.width < 800 && root.resolvedStyle.height > root.resolvedStyle.width);
             });
             hud.Refresh();
         }
@@ -148,9 +189,18 @@ namespace Onsite.App
             return uri.Query.TrimStart('?').Split('&').Any(s => s == key + "=1");
         }
 
+        static string QueryValue(string key)
+        {
+            if (!Uri.TryCreate(Application.absoluteURL, UriKind.Absolute, out var uri)) return null;
+            var hit = uri.Query.TrimStart('?').Split('&').FirstOrDefault(s => s.StartsWith(key + "="));
+            return hit?.Substring(key.Length + 1);
+        }
+
         void Update()
         {
             if (root == null) return;
+            if (Input.GetMouseButtonDown(0)) Sound.UserGesture();
+            sequence?.Pump();
             if (Api?.Auth != null && Uid != observedUid) { ForgetPrivateUi(); observedUid = Uid; }
             if (Time.unscaledTime >= nextHud)
             {
@@ -174,20 +224,24 @@ namespace Onsite.App
                 nextComments = Time.unscaledTime + 6;
                 LoadComments(letter);
             }
-            if (!playingSequence && completions.Count > 0 && view != "onboarding" && !Busy)
+            if (!tourRequested && !playingSequence && completions.Count > 0 && view != "onboarding" && !Busy)
                 PlayComplete(completions.Dequeue());
+            demoTour?.UpdateCamera();
             HandleMapTap();
         }
 
         void LateUpdate()
         {
             if (portraitCamera && portraitFocus != null && avatar != null)
-                portraitFocus.position = avatar.transform.position + Vector3.up * avatar.scale * 0.65f;
+                portraitFocus.position = avatar.transform.position + Vector3.up * (avatar.lift + avatar.scale * 0.55f);
             if (tags != null) tags.Project(view == "map" && !placing);
         }
 
         void OnDestroy()
         {
+            demoTour?.Dispose();
+            Sound.StopLoop("verify");
+            Sound.StopLoop("ambient");
             if (subscribedApi != null)
             {
                 subscribedApi.DropsChanged -= DropsChanged;
@@ -251,8 +305,34 @@ namespace Onsite.App
         }
 
         void UpdateTrail() => paths?.SetTrail(Trail.Points.Select(p => (p.lat, p.lng)));
-        void UpdateStates() => Markers?.UpdateStates(Uid, OpenedIds, HasLocation ? Lat : (double?)null,
-            HasLocation ? Lng : (double?)null, Accuracy);
+        void UpdateStates()
+        {
+            Markers?.UpdateStates(Uid, OpenedIds, HasLocation ? Lat : (double?)null, HasLocation ? Lng : (double?)null, Accuracy);
+            NotifyArrivals();
+        }
+
+        // 範囲に入った瞬間を知らせる（この SNS のいちばん大事な瞬間）
+        readonly HashSet<string> inRange = new HashSet<string>();
+        bool logReady;
+        void NotifyArrivals()
+        {
+            // 開封の記録を読み込む前は、開封済みも「ひらける」に見えてしまうので待つ
+            if (Api == null || !HasLocation || string.IsNullOrEmpty(Nickname) || !logReady) return;
+            Drop first = null;
+            var now = new HashSet<string>();
+            foreach (var d in Api.Drops)
+            {
+                if (StateOf(d) != DropState.InRange) continue;
+                now.Add(d.id);
+                if (!inRange.Contains(d.id) && first == null) first = d;
+            }
+            inRange.Clear(); inRange.UnionWith(now);
+            if (first == null || view != "map" || placing || playingSequence) return;
+            ToastInfo("SIGNAL IN RANGE ／「" + first.teaser + "」がひらけます");
+            if (Selected == null && !Busy) SelectDrop(first, false);
+            Sound.Play("arrival");
+            bridge?.Haptic(HapticKind.Arrival);
+        }
         public double DistanceTo(Drop d) => HasLocation ? GeoMath.Distance(Lat, Lng, d.lat, d.lng) : double.PositiveInfinity;
         public DropState StateOf(Drop d) => MarkerField.StateOf(d, Uid, OpenedIds,
             HasLocation ? Lat : (double?)null, HasLocation ? Lng : (double?)null, Accuracy);
@@ -270,12 +350,14 @@ namespace Onsite.App
             if (Api == null) return;
             OpenedIds.Clear();
             foreach (var item in Api.Opened) OpenedIds.Add(item.id);
+            logReady = true;
             UpdateStates(); hud?.Refresh(); RefreshScreen(); CheckCompletions();
         }
         void NoticesChanged() { hud?.Refresh(); RefreshScreen(); }
         void ForgetPrivateUi()
         {
             identityVersion++; Busy = false;
+            Sound.StopLoop("verify");
             OpenedIds.Clear(); JoinedIds.Clear(); Profile = null;
             completions.Clear(); pendingFootprints.Clear();
             Selected = null; if (Markers != null) Markers.SelectedId = null;
@@ -302,24 +384,33 @@ namespace Onsite.App
         void Screen(string next, VisualElement element = null)
         {
             if (Busy) { Toast("処理が終わるまでお待ちください"); return; }
+            if (view != next) Sound.Play(element != null ? "open_panel" : "close_panel");
+            Sound.SetMapActive(next == "map");
             (currentScreen as IDisposable)?.Dispose();
             screens.Clear(); confirmation = null;
             currentScreen = element; view = next; placing = false;
             if (element != null)
             {
                 element.AddToClassList("screen"); screens.Add(element);
-                element.AddToClassList("entering");
-                element.schedule.Execute(() => element.RemoveFromClassList("entering")).StartingIn(20);
+                // パソコンのホイールで、ひと回しに十分進むように
+                element.Query<ScrollView>().ForEach(s => s.mouseWheelScrollSize = 140);
+                Anim.Enter(element);
             }
             hud.style.display = next == "onboarding" ? DisplayStyle.None : DisplayStyle.Flex;
             hud.SetPlacement(false);
             hud.SetMapVisible(next == "map");
+            hud.SetActiveView(next == "letter" ? "map" : next);
             SetPortraitCamera(next == "onboarding" || next == "me");
         }
 
         void SetPortraitCamera(bool active)
         {
-            if (avatar != null) avatar.spin = active;
+            if (avatar != null)
+            {
+                avatar.spin = active;
+                // 像を選ぶあいだは、上空に浮かせて街を背景に見せる（地上だと建物の壁に隠れる）
+                avatar.lift = active ? 160f : 0f;
+            }
             if (Orbit == null || active == portraitCamera) return;
             portraitCamera = active;
             if (active)
@@ -327,9 +418,10 @@ namespace Onsite.App
                 savedDistance = Orbit.distance; savedPitch = Orbit.pitch; savedYaw = Orbit.yaw;
                 savedCameraTarget = Orbit.target;
                 if (portraitFocus == null) portraitFocus = new GameObject("Portrait Focus").transform;
-                portraitFocus.position = avatar != null ? avatar.transform.position + Vector3.up * avatar.scale * 0.65f : Vector3.zero;
+                portraitFocus.position = avatar != null ? avatar.transform.position + Vector3.up * (avatar.lift + avatar.scale * 0.55f) : Vector3.zero;
                 Orbit.target = portraitFocus;
-                Orbit.distance = 40; Orbit.pitch = 12;
+                // 画面の下半分は選択パネルなので、像が上半分に収まるよう少し見下ろす
+                Orbit.distance = 46; Orbit.pitch = 18;
             }
             else { Orbit.target = savedCameraTarget; Orbit.distance = savedDistance; Orbit.pitch = savedPitch; Orbit.yaw = savedYaw; }
             Orbit.SnapToTarget();
@@ -349,10 +441,16 @@ namespace Onsite.App
             Nickname = name; PlayerPrefs.SetString("onsite.name", name); PlayerPrefs.Save(); ShowMap();
         }
 
-        public void SelectDrop(Drop drop)
+        public void SelectDrop(Drop drop) => SelectDrop(drop, true);
+        void SelectDrop(Drop drop, bool feedback)
         {
             if (drop == null || Busy) return;
             ShowMap(); Selected = drop;
+            if (feedback)
+            {
+                Sound.Play("select");
+                bridge?.Haptic(HapticKind.Select);
+            }
             if (Markers != null) Markers.SelectedId = drop.id;
             UpdateStates(); hud.Refresh();
             hud.FlashSelection();
@@ -367,23 +465,31 @@ namespace Onsite.App
         {
             DemoMode = value; pendingFootprints.Clear();
             PlayerPrefs.SetInt("onsite.demo", value ? 1 : 0); PlayerPrefs.Save();
-            if (value && !HasLocation) SetPosition(35.70881, 139.72221, 0);
+            if (value && !HasLocation) SetPosition(DemoLat, DemoLng, 0);
             if (!value) { HasLocation = false; bridge?.StartLocation(); }
-            UpdateStates(); hud?.Refresh(); Toast(value ? "DEMO：地図をタップして移動" : "GPS の現在地を取得します");
+            UpdateStates(); hud?.Refresh(); ToastInfo(value ? "DEMO：地図をタップして移動" : "GPS の現在地を取得します");
         }
         public void SetShareFootprints(bool value)
         {
             ShareFootprints = value; pendingFootprints.Clear(); nextShare = Time.unscaledTime + 30;
             PlayerPrefs.SetInt("onsite.shareFootprints", value ? 1 : 0); PlayerPrefs.Save();
         }
-        public void Toast(string message) { if (!string.IsNullOrEmpty(message)) toast?.Show(message); }
+        public void Toast(string message)
+        {
+            if (string.IsNullOrEmpty(message)) return;
+            Sound.Play("error");
+            bridge?.Haptic(HapticKind.Error);
+            toast?.Show(message);
+        }
+        void ToastInfo(string message) { if (!string.IsNullOrEmpty(message)) toast?.Show(message); }
 
         public void ResetLocal()
         {
             Confirm("端末の記録をリセット", "名前・外見・足あと・設定を消します。サーバー上の投稿と開封履歴は残ります。", () =>
             {
                 Trail.Reset(); pendingFootprints.Clear(); completionShown.Clear(); completions.Clear();
-                foreach (var key in new[] { "onsite.name", "onsite.look.body", "onsite.look.pose", "onsite.look.finish", "onsite.demo", "onsite.shareFootprints", "onsite.noticesSeen", "onsite.completedEvents" }) PlayerPrefs.DeleteKey(key);
+                foreach (var key in new[] { "onsite.name", "onsite.look.body", "onsite.look.pose", "onsite.look.finish", "onsite.demo", "onsite.shareFootprints", "onsite.noticesSeen", "onsite.completedEvents", "onsite.sound", "onsite.haptics" }) PlayerPrefs.DeleteKey(key);
+                Sound.Muted = false; DeviceBridge.HapticsEnabled = true;
                 PlayerPrefs.Save(); Nickname = ""; SetDemo(false); ShareFootprints = false;
                 noticesSeen = 0; SetLook(AvatarLook.Default); UpdateTrail(); ShowOnboarding();
             });
@@ -407,6 +513,7 @@ namespace Onsite.App
 
         public void ShowDebug()
         {
+            if (tourRequested) return;
             var panel = new HudPanel("DEVELOPER", "フィールド設定", ShowMap);
             panel.Body.Add(UiKit.Label("位置の判定はサーバーが行います。", "muted"));
             var toggle = new Toggle("DEMO / タップで移動") { value = DemoMode };
@@ -420,16 +527,20 @@ namespace Onsite.App
 
         bool IsOverUi(Vector2 screenPosition)
         {
+            if (tourRequested) return true;
             if (root?.panel == null) return false;
             if (view != "map" || playingSequence || confirmation != null) return true;
             var point = RuntimePanelUtils.ScreenToPanel(root.panel, new Vector2(screenPosition.x, ScreenHeight - screenPosition.y));
             var hit = root.panel.Pick(point);
-            return hit != null && hit != root;
+            // 画面全体を覆う透明な入れ物は「地図の上」とみなす。色のある面やボタンの上だけを UI とする
+            for (var e = hit; e != null && e != root; e = e.parent)
+                if (e is Button || e is TextField || e is ScrollView || e.ClassListContains("ui-surface") || e.resolvedStyle.backgroundColor.a > 0.02f) return true;
+            return false;
         }
         static int ScreenHeight => UnityEngine.Screen.height;
         void HandleMapTap()
         {
-            if (view != "map" || placing || !DemoMode || Busy) return;
+            if (tourRequested || view != "map" || placing || !DemoMode || Busy) return;
             Vector2 mouse = Input.mousePosition;
             if (Input.GetMouseButtonDown(0))
             {

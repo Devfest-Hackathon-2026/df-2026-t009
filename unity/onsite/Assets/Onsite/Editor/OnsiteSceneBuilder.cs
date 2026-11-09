@@ -142,12 +142,12 @@ namespace Onsite.EditorTools
             if (mat == null) { mat = new Material(Shader.Find("Onsite/HoloMap")); AssetDatabase.CreateAsset(mat, matPath); }
             // 見た目の調整値（ここを変えれば再ビルドで反映される）
             mat.SetFloat("_Mono", 0.42f);
-            mat.SetFloat("_EdgeStrength", 1.3f);
+            mat.SetFloat("_EdgeStrength", 0.08f);
             mat.SetFloat("_ContourStep", 3f);
             mat.SetFloat("_ContourWidth", 0.8f);
             mat.SetFloat("_GridSize", 40f);
-            mat.SetFloat("_FogStart", 350f);
-            mat.SetFloat("_FogEnd", 1800f);
+            mat.SetFloat("_FogStart", 900f);
+            mat.SetFloat("_FogEnd", 3200f);
             mat.SetFloat("_Scan", 0.08f);
             EditorUtility.SetDirty(mat);
             if (data.rendererFeatures.OfType<FullScreenPassRendererFeature>().Any()) { AssetDatabase.SaveAssets(); return; }
@@ -189,7 +189,7 @@ namespace Onsite.EditorTools
             if (ps != null) return ps;
             ps = ScriptableObject.CreateInstance<PanelSettings>();
             ps.scaleMode = PanelScaleMode.ScaleWithScreenSize;
-            ps.referenceResolution = new Vector2Int(1080, 1920);
+            ps.referenceResolution = new Vector2Int(720, 1280);
             ps.screenMatchMode = PanelScreenMatchMode.MatchWidthOrHeight;
             ps.match = 0.5f;
             AssetDatabase.CreateAsset(ps, path);

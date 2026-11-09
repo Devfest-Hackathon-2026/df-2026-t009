@@ -19,6 +19,7 @@
       #bar i.on { background: #7fe3ff; box-shadow: 0 0 8px #7fe3ff; }
       #msg { font-family: "Share Tech Mono", ui-monospace, monospace; font-size: 11px; color: #7fa3ab; letter-spacing: .12em; }
       #boot.done { opacity: 0; pointer-events: none; }
+      #lite { position: absolute; bottom: 36px; color: #7fa3ab; font-size: 12px; letter-spacing: .12em; text-decoration: none; border-bottom: 1px solid rgb(127 227 255 / 30%); padding-bottom: 4px; }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300&family=Share+Tech+Mono&display=swap" rel="stylesheet" crossorigin="anonymous" />
@@ -30,6 +31,7 @@
       <p>近づくと、ひらく。</p>
       <div id="bar"></div>
       <div id="msg">LOADING FIELD DATA</div>
+      <a id="lite" href="/lite">読み込みが重いときは　軽い版で開く →</a>
     </div>
     <script>
       const bar = document.getElementById('bar');
@@ -57,14 +59,44 @@
         devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       };
 
+      // ?demo=1 などの指定は、軽い版へもそのまま渡す
+      document.getElementById('lite').href = '/lite' + location.search;
       const script = document.createElement('script');
       script.src = buildUrl + '/{{{ LOADER_FILENAME }}}';
       script.onload = () => {
         createUnityInstance(document.getElementById('unity-canvas'), config, setProgress)
-          .then(() => document.getElementById('boot').classList.add('done'))
+          .then(() => {
+            const boot = document.getElementById('boot');
+            boot.classList.add('done');
+            setTimeout(() => boot.remove(), 700);
+            startRecording();
+          })
           .catch((e) => { document.getElementById('msg').textContent = '読み込みに失敗しました：' + e; });
       };
       document.body.appendChild(script);
+
+      // 紹介動画用：?rec=秒数 で、画面（と効果音）を録画して webm を保存する
+      function startRecording() {
+        const seconds = Number(new URLSearchParams(location.search).get('rec'));
+        if (!seconds || !window.MediaRecorder) return;
+        const canvas = document.getElementById('unity-canvas');
+        const stream = canvas.captureStream(30);
+        if (window.__onsiteAudioStream) window.__onsiteAudioStream.getAudioTracks().forEach((t) => stream.addTrack(t));
+        const type = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'].find((t) => MediaRecorder.isTypeSupported(t));
+        const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 10000000 });
+        const chunks = [];
+        rec.ondataavailable = (e) => { if (e.data.size) chunks.push(e.data); };
+        rec.onstop = () => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+          a.download = 'onsite-demo.webm';
+          document.body.appendChild(a); a.click();
+          document.title = 'onsite — recorded';
+        };
+        rec.start(1000);
+        document.title = 'onsite — recording';
+        setTimeout(() => rec.stop(), seconds * 1000);
+      }
     </script>
   </body>
 </html>

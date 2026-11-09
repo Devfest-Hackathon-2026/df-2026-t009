@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using Onsite.App.Ui;
 using Onsite.Net;
 using UnityEngine.UIElements;
@@ -13,6 +13,7 @@ namespace Onsite.App.Hud
         {
             this.app = app;
             AddToClassList("screen");
+            AddToClassList("notices-screen");
             var panel = new HudPanel("INCOMING", "お知らせ", app.ShowMap);
             Add(panel);
             panel.Body.Add(UiKit.Button("すべて既読にする", () => { app.MarkNoticesRead(); Refresh(); }));
@@ -20,6 +21,7 @@ namespace Onsite.App.Hud
             scroll.AddToClassList("screen-scroll");
             panel.Body.Add(scroll);
             list = scroll.contentContainer;
+            list.AddToClassList("activity-list");
             Refresh();
         }
 
@@ -31,16 +33,27 @@ namespace Onsite.App.Hud
                 list.Add(UiKit.Label("まだお知らせはありません。置いた投稿への反応がここに届きます。", "empty"));
                 return;
             }
-            var table = new DataTable("TYPE", "SIGNAL / ACTIVITY", "TIME");
             foreach (var n in app.Api.Notices)
             {
+                var notice = n;
                 var kind = n.type == "like" ? "LIKE" : n.type == "comment" ? "COMMENT" : "OPEN";
                 var action = n.type == "like" ? "いいねしました" : n.type == "comment" ? "寄せ書きしました" : "現地でひらきました";
-                var text = (app.IsUnread(n) ? "● " : "") + n.actorName + " さんが" + action + "\n" + n.teaser;
-                if (n.type == "comment" && !string.IsNullOrEmpty(n.text)) text += "\n「" + n.text + "」";
-                table.AddRow(new[] { kind, text, AppFormat.Ago(n.createdAt) }, () => Select(n), app.IsUnread(n));
+                var row = UiKit.Button("", () => Select(notice)); row.AddToClassList("notice-entry");
+                row.EnableInClassList("unread", app.IsUnread(n));
+                var meta = UiKit.Row(UiKit.Label(kind, "mono notice-kicker"));
+                if (app.IsUnread(n))
+                {
+                    var dot = new VisualElement(); dot.AddToClassList("notice-dot"); meta.Add(dot);
+                    meta.Add(UiKit.Label("NEW", "mono notice-kicker"));
+                }
+                row.Add(meta);
+                row.Add(UiKit.Author(n.actorName, AppFormat.Ago(n.createdAt)));
+                row.Add(UiKit.Label(action, "caption"));
+                row.Add(UiKit.Label(n.teaser, "heading notice-title"));
+                if (n.type == "comment" && !string.IsNullOrEmpty(n.text))
+                    row.Add(UiKit.Label("「" + n.text + "」", "body-copy notice-quote"));
+                row.Add(UiKit.Rule()); list.Add(row);
             }
-            list.Add(table);
         }
 
         private void Select(Notice notice)

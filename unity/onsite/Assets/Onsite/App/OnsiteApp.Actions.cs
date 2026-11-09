@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Linq;
 using Onsite.App.Hud;
@@ -56,6 +56,7 @@ namespace Onsite.App
         {
             var version = identityVersion; var requestUid = Uid;
             Busy = true; hud.Refresh();
+            Sound.StartLoop("verify");
             Callable.OpenDropResponse result = null;
             try
             {
@@ -66,7 +67,11 @@ namespace Onsite.App
                     accuracy = HasLocation ? Accuracy : (double?)null, name = Nickname
                 }, value => result = value, Toast);
             }
-            finally { if (version == identityVersion) Busy = false; hud.Refresh(); }
+            finally
+            {
+                Sound.StopLoop("verify");
+                if (version == identityVersion) Busy = false; hud.Refresh();
+            }
             if (result == null || version != identityVersion || requestUid != Uid) yield break;
             if (result.status == "too_far")
             {
@@ -81,7 +86,9 @@ namespace Onsite.App
                 playingSequence = true;
                 bool finished = false;
                 sequence.Play(false, () => finished = true);
-                while (!finished) yield return null;
+                // 万一演出が止まっても、3秒で必ず本文へ進む
+                float started = Time.unscaledTime;
+                while (!finished && Time.unscaledTime - started < 3f) yield return null;
                 playingSequence = false;
             }
             if (version != identityVersion || requestUid != Uid) yield break;
@@ -101,7 +108,11 @@ namespace Onsite.App
         }
         public void Like(LetterScreen letter)
         {
-            if (CanRequest()) StartCoroutine(LikeRoutine(letter));
+            if (CanRequest())
+            {
+                if (!letter.IsLiked) Sound.SuppressTap();
+                StartCoroutine(LikeRoutine(letter));
+            }
         }
         IEnumerator LikeRoutine(LetterScreen letter)
         {
@@ -110,7 +121,12 @@ namespace Onsite.App
             try
             {
                 yield return Api.ToggleLike(new Callable.ToggleLikeRequest { dropId = letter.Drop.id, name = Nickname },
-                    result => { if (version == identityVersion && requestUid == Uid) letter.SetLiked(result.liked); }, Toast);
+                    result =>
+                    {
+                        if (version != identityVersion || requestUid != Uid) return;
+                        letter.SetLiked(result.liked);
+                        if (result.liked) Sound.Play("like");
+                    }, Toast);
             }
             finally { if (version == identityVersion) Busy = false; letter.SetBusy(false); }
             yield return Api.Refresh();
@@ -119,6 +135,7 @@ namespace Onsite.App
         {
             text = (text ?? "").Trim();
             if (text.Length == 0 || text.Length > 200 || !CanRequest()) return;
+            Sound.SuppressTap();
             StartCoroutine(CommentRoutine(letter, text));
         }
         IEnumerator CommentRoutine(LetterScreen letter, string text)
@@ -131,7 +148,11 @@ namespace Onsite.App
                 yield return Api.AddComment(new Callable.AddCommentRequest { dropId = letter.Drop.id, name = Nickname, text = text }, _ => success = true, Toast);
             }
             finally { if (version == identityVersion) Busy = false; letter.SetBusy(false); }
-            if (success && version == identityVersion && requestUid == Uid) { letter.ClearComment(); LoadComments(letter); RefreshEvents(); }
+            if (success && version == identityVersion && requestUid == Uid)
+            {
+                Sound.Play("send");
+                letter.ClearComment(); LoadComments(letter); RefreshEvents();
+            }
         }
         public void DeleteLetter(LetterScreen letter)
         {
@@ -145,7 +166,7 @@ namespace Onsite.App
             bool success = false;
             try { yield return Api.DeleteDrop(new Callable.DeleteDropRequest { dropId = letter.Drop.id }, r => success = r.ok, Toast); }
             finally { if (version == identityVersion) Busy = false; letter.SetBusy(false); }
-            if (success && version == identityVersion && requestUid == Uid) { ClearSelection(); ShowMap(); Toast("投稿を削除しました"); yield return Api.Refresh(); }
+            if (success && version == identityVersion && requestUid == Uid) { ClearSelection(); ShowMap(); ToastInfo("投稿を削除しました"); yield return Api.Refresh(); }
         }
 
         public void BeginPost()
@@ -178,6 +199,7 @@ namespace Onsite.App
             teaser = (teaser ?? "").Trim(); body = (body ?? "").Trim();
             if (!CanRequest() || teaser.Length == 0 || teaser.Length > 60 || body.Length > 600 ||
                 (body.Length == 0 && (jpeg == null || jpeg.Length == 0)) || !new[] {100,300,500,1000}.Contains(radius)) return;
+            Sound.SuppressTap();
             StartCoroutine(PostRoutine(post, teaser, body, radius, jpeg));
         }
         IEnumerator PostRoutine(PostScreen post, string teaser, string body, int radius, byte[] jpeg)
@@ -201,7 +223,8 @@ namespace Onsite.App
             finally { if (version == identityVersion) Busy = false; post.SetBusy(false); }
             if (success && version == identityVersion && requestUid == Uid)
             {
-                ShowMap(); Toast("ビーコンを置きました  +15 EXP");
+                ShowMap(); ToastInfo("ビーコンを置きました  +15 EXP");
+                Sound.Play("send");
                 yield return Api.Refresh(); RefreshEvents();
             }
         }
@@ -228,30 +251,32 @@ namespace Onsite.App
             {
                 if (join) { activeRoute = ev.id; paths?.SetRoute(ev.stops); }
                 else if (activeRoute == ev.id) ClearRoute();
-                Toast(join ? "参加しました。地図にルートを表示します" : "参加をやめました");
+                ToastInfo(join ? "参加しました。地図にルートを表示します" : "参加をやめました");
                 RefreshScreen(); CheckCompletions();
             }
             done?.Invoke(success && version == identityVersion && requestUid == Uid);
         }
-        public void CreateEvent(string title, string description, string[] ids, Action<bool> done = null)
+        public void CreateEvent(string title, string description, string[] ids, Action<bool> done = null) => CreateEvent(title, description, ids, null, null, done);
+        public void CreateEvent(string title, string description, string[] ids, DateTime? startAt, DateTime? endAt, Action<bool> done = null)
         {
             title = (title ?? "").Trim(); description = (description ?? "").Trim();
             if (!CanRequest() || title.Length == 0 || title.Length > 40 || description.Length > 300 || ids == null || ids.Length < 2 || ids.Length > 20 || ids.Distinct().Count() != ids.Length)
             { Toast("イベント名と2〜20か所の巡る順序を確認してください"); done?.Invoke(false); return; }
-            StartCoroutine(CreateEventRoutine(title, description, ids, done));
+            StartCoroutine(CreateEventRoutine(title, description, ids, startAt, endAt, done));
         }
-        IEnumerator CreateEventRoutine(string title, string description, string[] ids, Action<bool> done)
+        static long? Millis(DateTime? t) => t.HasValue ? new DateTimeOffset(t.Value).ToUnixTimeMilliseconds() : (long?)null;
+        IEnumerator CreateEventRoutine(string title, string description, string[] ids, DateTime? startAt, DateTime? endAt, Action<bool> done)
         {
             var version = identityVersion; var requestUid = Uid;
             Busy = true; bool success = false;
             try
             {
-                yield return Api.CreateEvent(new Callable.CreateEventRequest { title = title, description = description, dropIds = ids, name = Nickname }, _ => success = true, Toast);
+                yield return Api.CreateEvent(new Callable.CreateEventRequest { title = title, description = description, dropIds = ids, name = Nickname, startAt = Millis(startAt), endAt = Millis(endAt) }, _ => success = true, Toast);
             }
             finally { if (version == identityVersion) Busy = false; }
             if (success && version == identityVersion && requestUid == Uid)
             {
-                Toast("イベントを作りました");
+                ToastInfo("イベントを作りました");
                 yield return RefreshMetadata(); RefreshScreen();
             }
             done?.Invoke(success && version == identityVersion && requestUid == Uid);

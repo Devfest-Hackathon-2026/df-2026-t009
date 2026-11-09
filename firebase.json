@@ -6,7 +6,18 @@
       "**/.*",
       "**/node_modules/**"
     ],
+    "redirects": [
+      {
+        "source": "/",
+        "destination": "/field/",
+        "type": 302
+      }
+    ],
     "rewrites": [
+      {
+        "source": "/lite",
+        "destination": "/index.html"
+      },
       {
         "source": "**",
         "destination": "/index.html"

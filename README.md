@@ -1,62 +1,54 @@
 # onsite — 近づくと、ひらく。
 
-誰かがその場所に残した投稿を、**実際に近づいたときだけ読める**おでかけSNSです。街歩きでも旅先でも使えます。
+誰かがその場所に残した投稿を、**実際に近づいたときだけ読める**、おでかけと観光のための SNS です。
 
-地図には投稿の「予告」だけが見えます。本文と写真は、投稿者が決めた範囲（100m・300m・500m・1km）に入った人だけがひらけます。写真を見た時点で終わってしまう普通のSNSと違い、誰かの発見が「自分で出かけて確かめる」きっかけになります。
+地図には投稿の「予告」だけが見えます。本文と写真は、投稿者が決めた範囲（100m・300m・500m・1km）に入った人だけがひらけます。写真を見た時点で終わってしまう普通の SNS と違い、誰かの発見が「自分で出かけて確かめる」きっかけになります。投稿をつないだ「巡りルート」には開催期間を付けられるので、祭りやツアーの期間限定の巡りにも使えます。
 
 - カテゴリ：観光
-- 公開URL：https://kokodake-t009.web.app （審査・デモ用は https://kokodake-t009.web.app/?demo=1 ）
-- Android アプリ：`web/android`（Capacitor）。ビルド方法は下の「Android アプリ」
+- 公開 URL：https://kokodake-t009.web.app （Unity 版が開きます）
+- 審査・デモ用：https://kokodake-t009.web.app/?demo=1 （浅草から始まり、地図をタップして移動できます）
+- 軽い版（立体地図が重い端末向け）：https://kokodake-t009.web.app/lite
 - 説明書：[docs/product.md](docs/product.md)
 - 使用した素材・ライブラリ：[docs/credits.md](docs/credits.md)
 
-## 見た目
-
-- **HOLO**（初期設定）：暗い測量図のような地図に、シアンの細い線と六角形の印。現在地には、自分で選んだクリスタルの人形（ポーズと色を選べる）が立つ
-- **MILK**：くすみカラーの平面のイラスト地図
-
-プロフィールの「表示」で切り替えられます。地図の配色は [docs/map-style-holo.json](docs/map-style-holo.json)（ダークモード）と [docs/map-style.json](docs/map-style.json)（ライトモード）を、同じマップ ID に設定しています。
-
-## デバッグパネル
-
-URL に `?debug=1` を付けるか、左上のロゴを 5 回続けてタップすると開きます。ワープ、10m・50m ずつの移動、選んだ投稿まで歩く（8 倍速）、テスト投稿の作成と削除、演出の再生、テーマと立体表示の切り替え、状態の確認、記録のリセットができます。距離の判定はサーバーで行うので、デバッグパネルから遠くの投稿をひらくことはできません。
-
 ## 審査・デモで試すとき
 
-現地に行けない人のために **デモモード** があります。右上のボタンを「デモ：タップで移動」に切り替えると、地図をタップした場所を現在地として扱います。URL に `?demo=1` を付けて開いても同じです。
+1. https://kokodake-t009.web.app/?demo=1 をひらく（初回は読み込みに少し時間がかかります）
+2. 像の体型・ポーズ・仕上げを選び、ニックネームを入れて出発
+3. 浅草の地図に、サンプルの予告（六角形の印）が出ます。地図をタップすると、その場所へ移動します
+4. 予告の範囲に入ると「SIGNAL IN RANGE」の知らせが出るので「ひらく」→ 開封の演出 → 本文
+5. ひらいた投稿には、寄せ書き（コメント）といいねができます
+6. 左（スマホでは下）の「ROUTES」で「浅草 はじめてめぐり」に参加すると、ルートがレーザーで地図に出ます。全部ひらくと制覇の演出
+7. 「＋」で照準の場所に投稿を置けます
 
-1. はじめにニックネームを入れる
-2. 地図の「？」の近くをタップして移動し、下の「ひらける投稿があります」→「ひらく」
-3. ひらいた投稿には、寄せ書き（コメント）といいねができる
-4. 「＋」で投稿を置く（写真はその場で撮影）
-5. フィード →「イベント」で、投稿をつないだ巡りルートを作る・参加する
+URL の末尾に `&debug=1` を付けるか、左上のロゴを長押しすると開発用の画面が出ます。距離の判定はサーバーで行うので、ここから遠くの投稿をひらくことはできません。
 
 ## できること
 
 | 機能 | 内容 |
 | --- | --- |
-| 近づくとひらく投稿 | 予告は誰でも見える。本文と写真は範囲に入った人だけ。はじめてひらくとドット絵の演出 |
+| 近づくとひらく投稿 | 予告は誰でも見える。本文と写真は範囲に入った人だけ。範囲に入ると知らせが出て、はじめてひらくと開封の演出 |
 | 寄せ書きといいね | その場所でひらいた人と投稿者だけが書けて、読める |
-| フィード | まわりの予告が、近い順・新着順でカードのように重なって流れる |
-| イベント（巡りルート） | 投稿を 2〜20 か所つないでルートにする。参加すると地図に番号と矢印が出て、全部ひらくと COMPLETE |
-| 足あと | 自分の移動が地図に点線で残る。1 日ごとの距離と道のりの線画がログに並ぶ |
-| みんなの踏み跡 | 共有をオンにした人の移動を、約 33m 四方のマス目ごとの回数としてだけ集め、よく通られた道が浮かび上がる |
-| おでかけログ | 1 日（午前 4 時区切り）ごとに、ひらいた・置いた・歩いたをまとめ、ストーリーのように再生 |
-| プロフィールとレベル | ひらいた数・置いた数・ひらかれた数などから経験値とレベル |
-| お知らせ | 自分の投稿がひらかれた・寄せ書きされた・いいねされたときに届く |
-| アプリとして | PWA（ホーム画面に追加できる）と Android アプリ |
+| フィード | まわりの予告を近い順・新着順に。写真は「現地でひらく」まで隠れる |
+| イベント（巡りルート） | 投稿を 2〜20 か所つないでルートにし、開催期間を付けられる。参加すると地図にルートが出て、全部ひらくと制覇の演出 |
+| 足あと・踏み跡 | 自分の移動が地図に光の線で残る。みんなの踏み跡はマス目ごとの回数だけを共有（初期設定でオフ） |
+| アバター | トロフィー像（紳士・レディ・ドレス・ゴブリン × 3 ポーズ × 4 つの仕上げ） |
+| 経験値とレベル、お知らせ | ひらいた・置いた・ひらかれた数から経験値。自分の投稿への反応が届く |
+| デモモード | 現地に行けない人が、地図をタップして移動できる |
 
 ## しくみ
 
 | 部分 | 使っているもの |
 | --- | --- |
-| 画面 | React + Vite、Google Maps JavaScript API（`@vis.gl/react-google-maps`） |
-| ログイン | Firebase Authentication（匿名ログイン） |
-| データ | Cloud Firestore |
-| 写真 | Cloud Storage for Firebase |
-| 距離の判定・書き込み | Cloud Functions for Firebase（`asia-northeast1`） |
-| 公開 | Firebase Hosting |
-| Android | Capacitor 7 |
+| アプリ本体 | Unity 6（C#）、URP、UI Toolkit。WebGL と Android に書き出し（`unity/onsite`） |
+| 立体地図 | Cesium for Unity ＋ Google Photorealistic 3D Tiles。自作シェーダーで地形模型のように見せる |
+| 通信 | Firebase の REST API を C# から直接（`unity/onsite/Assets/Onsite/Net`） |
+| ログイン | Firebase Authentication（匿名） |
+| データ・写真 | Cloud Firestore、Cloud Storage for Firebase |
+| 距離の判定・書き込み | Cloud Functions for Firebase（`functions/`、`asia-northeast1`） |
+| 公開 | Firebase Hosting（`/` → Unity 版 `/field/`、`/lite` → 軽い版） |
+| 軽い版 | React + Vite + Google Maps JavaScript API（`web/`）、Android は Capacitor |
+| アバターの 3D モデル | Blender を Python スクリプトで動かして生成（`unity/blender/build_avatar.py`） |
 
 本文・写真・寄せ書きは、ブラウザから直接は読めないようにしています（`firestore.rules`・`storage.rules`）。読むときは Cloud Functions の `openDrop` が、送られてきた現在地と投稿の場所の距離を計算し、範囲内のときだけ返します。GPS の誤差は最大 30m まで考慮します。書き込みもすべて Cloud Functions を通します。
 
@@ -64,11 +56,28 @@ URL に `?debug=1` を付けるか、左上のロゴを 5 回続けてタップ�
 
 ### プライバシー
 
-- 投稿の場所は現在地ではなく地図上で自分で選ぶ。今いる場所にそのまま置こうとすると注意を出す
-- 自分の足あとは端末の中（localStorage）にだけ保存する
+- 投稿の場所は現在地ではなく地図の照準で選ぶ。今いる場所のすぐそばに置こうとすると注意を出す
+- 自分の足あとは端末の中にだけ保存する
 - みんなの踏み跡は初期設定でオフ。オンにしても、送るのはマス目ごとの回数だけで、誰が通ったかは残らない
 
-## 開発
+## Unity 版のビルド
+
+必要なもの：Unity 6000.3（WebGL / Android モジュール）。パッケージは `Packages/manifest.json` のとおり（Cesium は `https://unity.pkg.cesium.com` から）。
+
+1. `web/.env.local` に Firebase と Google Maps の値を入れる（下の「デプロイ」）。Map Tiles API も有効にする
+2. ビルドすると `web/.env.local` から鍵を読み、Git に入らない設定ファイル（`Assets/Onsite/Resources/*.asset`）を作る
+
+```bash
+Unity -batchmode -nographics -projectPath unity/onsite -buildTarget WebGL -executeMethod Onsite.EditorTools.OnsiteSetup.BuildWebGL -quit
+```
+
+```bash
+Unity -batchmode -nographics -projectPath unity/onsite -buildTarget Android -executeMethod Onsite.EditorTools.OnsiteSetup.BuildAndroid -quit
+```
+
+WebGL の出力（`unity/build/webgl`）を `web/dist/field` にコピーしてから Hosting にデプロイします。マルチスレッドを使うため、`firebase.json` で `/field/**` に COOP/COEP ヘッダーを付けています。
+
+## 軽い版・サーバーの開発
 
 必要なもの：Node.js 22、Java 21（エミュレーターと Android のビルド用）
 
@@ -83,8 +92,6 @@ cp web/.env.example web/.env.local   # VITE_USE_EMULATORS=true と VITE_FIREBASE
 npx firebase emulators:start --only auth,firestore,functions,storage --project demo-kokodake
 npm run dev
 ```
-
-Google Maps の API キーがないときは、地図の代わりに簡易レーダー表示になります。
 
 距離計算のテスト：
 
@@ -104,9 +111,8 @@ node scripts/e2e.mjs web/.env.local
 2. Authentication で「匿名」を有効にする
 3. Firestore（`asia-northeast1`）と Storage を作る
 4. プロジェクトの設定 → マイアプリ → ウェブアプリを追加し、表示された値を `web/.env.local` に入れる
-5. Google Cloud コンソールで Maps JavaScript API を有効にし、API キーを作って `web/.env.local` に入れる。キーには HTTP リファラー制限（`https://<プロジェクト>.web.app/*`、`https://<プロジェクト>.firebaseapp.com/*`、`http://localhost:5173/*`）をかける
-   - 地図の見た目：Google Maps Platform の「地図のスタイル」で [docs/map-style.json](docs/map-style.json) を JSON として読み込んで保存する。「マップ管理」で JavaScript・ベクター（チルトとローテーションを有効）のマップ ID を作り、ライトモードにそのスタイルを選ぶ。マップ ID を `web/.env.local` の `VITE_GOOGLE_MAPS_MAP_ID` に入れる
-6. デプロイする
+5. Google Cloud コンソールで Maps JavaScript API と Map Tiles API を有効にし、API キーを作って `web/.env.local` に入れる。キーには HTTP リファラー制限（`https://<プロジェクト>.web.app/*`、`https://<プロジェクト>.firebaseapp.com/*`、`http://localhost:5173/*`）をかける
+6. デプロイする（軽い版のビルドは `web/dist` を作り直すので、Unity 版の `web/dist/field` はそのあとにコピーする）
 
 ```bash
 npx firebase login
@@ -116,18 +122,4 @@ npx firebase login
 npm run deploy
 ```
 
-`.env.local` は `.gitignore` に入っているのでコミットされません。API キーやクレジットコードはこのリポジトリに書かないでください。
-
-## Android アプリ
-
-`web/android` は Capacitor で作った Android プロジェクトです。アプリの中の画面は `https://kokodake-t009.web.app` という名前で動くので、Web 版と同じ Maps キーの制限のまま使えます。
-
-```bash
-cd web && npm run build && npx cap sync android
-```
-
-```bash
-cd web/android && ./gradlew assembleDebug
-```
-
-できた APK は `web/android/app/build/outputs/apk/debug/app-debug.apk` です。Windows でパスが長すぎてビルドに失敗するときは、`subst` で短いドライブ名に割り当ててから実行してください。
+`.env.local` と Unity の鍵の設定ファイルは `.gitignore` に入っているのでコミットされません。API キーやクレジットコードはこのリポジトリに書かないでください。

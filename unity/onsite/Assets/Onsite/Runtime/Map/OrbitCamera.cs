@@ -10,14 +10,17 @@ namespace Onsite.Map
     public class OrbitCamera : MonoBehaviour
     {
         public Transform target;
-        public float distance = 260f;
-        public float minDistance = 60f, maxDistance = 1600f;
-        public float pitch = 52f, minPitch = 20f, maxPitch = 85f;
+        public float distance = 520f;
+        public float minDistance = 60f, maxDistance = 2400f;
+        public float pitch = 58f, minPitch = 20f, maxPitch = 85f;
         public float yaw = 0f;
         public float smooth = 8f;
 
         /// <summary>UI の上での操作は地図に渡さない。</summary>
         public System.Func<Vector2, bool> IsOverUi;
+
+        // 撮影中は補間だけを動かし、手動操作を止める。
+        public bool ScriptedMotion { get; set; }
 
         Vector3 _focus;
         Vector2 _lastMouse;
@@ -31,7 +34,16 @@ namespace Onsite.Map
             var rot = Quaternion.Euler(pitch, yaw, 0);
             var want = _focus + rot * new Vector3(0, 0, -distance);
             transform.SetPositionAndRotation(want, rot);
+            // 地図の効果に「見えている範囲の中心と広さ」を渡す（外側はブロック状に欠けて闇に沈む）
+            Shader.SetGlobalVector(FocusId, new Vector4(_focus.x, _focus.y, _focus.z, 0));
+            float inner = Mathf.Max(distance * revealInner, 90f);
+            Shader.SetGlobalVector(RevealId, new Vector4(inner, inner * revealOuter, Mathf.Clamp(distance / 28f, 6f, 60f), 0));
         }
+
+        /// <summary>はっきり見える半径（カメラ距離に対する倍率）と、欠けきるまでの倍率。</summary>
+        public float revealInner = 0.3f, revealOuter = 1.7f;
+        static readonly int FocusId = Shader.PropertyToID("_OnsiteFocus");
+        static readonly int RevealId = Shader.PropertyToID("_OnsiteReveal");
 
         public void SnapToTarget()
         {
@@ -40,6 +52,7 @@ namespace Onsite.Map
 
         void HandleInput()
         {
+            if (ScriptedMotion) { _dragging = false; _lastPinch = 0; return; }
             if (Input.touchCount == 2)
             {
                 var a = Input.GetTouch(0);
@@ -75,6 +88,11 @@ namespace Onsite.Map
             if (!held) _dragging = false;
 
             float wheel = Input.mouseScrollDelta.y;
+            // キーボードでも寄り引き（パソコンでの確認用）
+            if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) wheel = -1;
+            if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) wheel = 1;
+            // ブラウザごとにホイール量の単位が違うので、1ノッチ＝1段に揃える
+            if (Mathf.Abs(wheel) > 0.01f) wheel = Mathf.Sign(wheel) * Mathf.Clamp(Mathf.Abs(wheel), 1f, 3f);
             if (Mathf.Abs(wheel) > 0.01f && (IsOverUi == null || !IsOverUi(pos)))
                 distance = Mathf.Clamp(distance * Mathf.Pow(0.88f, wheel), minDistance, maxDistance);
         }

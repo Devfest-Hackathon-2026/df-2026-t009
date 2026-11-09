@@ -322,10 +322,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Onsite.Map.OrbitCamera
   target: {fileID: 1091939913}
-  distance: 260
+  distance: 700
   minDistance: 60
-  maxDistance: 1600
-  pitch: 52
+  maxDistance: 2400
+  pitch: 58
   minPitch: 20
   maxPitch: 85
   yaw: 0

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine.UIElements;
 
 namespace Onsite.App.Ui
@@ -9,22 +9,24 @@ namespace Onsite.App.Ui
         public VisualElement Header { get; }
         public HudPanel(string english, string japanese, Action close = null)
         {
-            AddToClassList("hud-panel");
+            AddToClassList("hud-panel"); AddToClassList("ui-surface");
+            Add(new FadeSurface());
             Header = new VisualElement(); Header.AddToClassList("panel-header");
-            Header.Add(UiKit.Label(english, "section-label"));
+            Header.Add(UiKit.Label(english, "panel-heading"));
             Header.Add(UiKit.Label(japanese, "panel-title"));
             if (close != null)
             {
-                var button = UiKit.Button("×", close); button.AddToClassList("close-button");
-                button.tooltip = "閉じる"; Header.Add(button);
+                var button = UiKit.Button("閉じる", close); button.AddToClassList("close-button");
+                button.Insert(0, new LineIcon("close")); button.tooltip = "閉じる"; Header.Add(button);
             }
             Add(Header);
+            var rule = new LaserBand { Scan = true }; rule.AddToClassList("panel-rule"); Add(rule);
             Body = new VisualElement(); Body.AddToClassList("panel-body"); Add(Body);
-            Add(new CornerTicks());
+            var corners = new CornerTicks(); corners.AddToClassList("panel-corners"); Add(corners);
             RegisterCallback<AttachToPanelEvent>(_ =>
             {
-                AddToClassList("enter");
-                schedule.Execute(() => RemoveFromClassList("enter")).ExecuteLater(20);
+                Anim.Enter(Body, 30);
+                Anim.Enter(Header);
             });
         }
     }

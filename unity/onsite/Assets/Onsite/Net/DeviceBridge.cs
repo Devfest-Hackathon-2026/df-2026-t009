@@ -11,6 +11,8 @@ using UnityEngine.Android;
 
 namespace Onsite.Net
 {
+    public enum HapticKind { Tap, Select, Arrival, Unlock, Complete, Error }
+
     [DisallowMultipleComponent]
     public sealed class DeviceBridge : MonoBehaviour
     {
@@ -19,11 +21,35 @@ namespace Onsite.Net
         public event Action<string> LocationError;
         public event Action<string> PhotoError;
 
+        static DeviceBridge active;
+        static readonly int[][] hapticPatterns =
+        {
+            new[] { 8 }, new[] { 14 }, new[] { 30, 60, 30 },
+            new[] { 20, 40, 20, 40, 80 }, new[] { 40, 60, 40, 60, 120 }, new[] { 60, 40, 60 }
+        };
+        readonly float[] lastHaptics = { -1f, -1f, -1f, -1f, -1f, -1f };
+
+        public static bool HapticsEnabled
+        {
+            get => PlayerPrefs.GetString("onsite.haptics", "1") != "0";
+            set
+            {
+                PlayerPrefs.SetString("onsite.haptics", value ? "1" : "0");
+                PlayerPrefs.Save();
+#if UNITY_WEBGL && !UNITY_EDITOR
+                if (!value) Onsite_Vibrate(0);
+#endif
+            }
+        }
+
 #if UNITY_WEBGL && !UNITY_EDITOR
         [DllImport("__Internal")] private static extern void Onsite_StartLocation();
         [DllImport("__Internal")] private static extern void Onsite_StopLocation();
         [DllImport("__Internal")] private static extern void Onsite_SelectPhoto();
         [DllImport("__Internal")] private static extern void Onsite_CancelPhoto();
+        [DllImport("__Internal")] private static extern void Onsite_Vibrate(int ms);
+        [DllImport("__Internal")] private static extern void Onsite_VibratePattern(int[] pattern, int len);
+        [DllImport("__Internal")] private static extern void Onsite_EditText(string title, string value, int max, bool multiline);
 #else
         private Coroutine locationRoutine;
         private bool locationRequested;
@@ -33,6 +59,29 @@ namespace Onsite.Net
         {
             // SendMessage の宛先を、シーンでの名前変更から守る。
             gameObject.name = "OnsiteBridge";
+        }
+
+        private void OnEnable() => active = this;
+
+        public static void Feedback(HapticKind kind)
+        {
+            if (active != null) active.Haptic(kind);
+        }
+
+        public void Haptic(HapticKind kind)
+        {
+            var index = (int)kind;
+            if (!isActiveAndEnabled || !HapticsEnabled || index < 0 || index >= hapticPatterns.Length) return;
+            var now = Time.realtimeSinceStartup;
+            if (now - lastHaptics[index] < .06f) return;
+            lastHaptics[index] = now;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            var pattern = hapticPatterns[index];
+            Onsite_VibratePattern(pattern, pattern.Length);
+#elif UNITY_ANDROID && !UNITY_EDITOR
+            // Android の標準 API は長さを選べない。
+            if (kind >= HapticKind.Select) Handheld.Vibrate();
+#endif
         }
 
         public void StartLocation()
@@ -59,6 +108,33 @@ namespace Onsite.Net
 #endif
         }
 
+        /// <summary>端末を短く震わせる（範囲に入ったときの合図）。対応しない端末では何もしない。</summary>
+        public void Vibrate(int ms)
+        {
+            if (!isActiveAndEnabled || !HapticsEnabled || ms <= 0) return;
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Onsite_Vibrate(ms);
+#elif UNITY_ANDROID || UNITY_IOS
+            Handheld.Vibrate();
+#endif
+        }
+
+        /// <summary>ブラウザーの入力欄で文字を入れてもらう（日本語の変換を確実に使うため）。</summary>
+        public event Action<string> TextEdited;
+        public static bool UsesHtmlText =>
+#if UNITY_WEBGL && !UNITY_EDITOR
+            true;
+#else
+            false;
+#endif
+        public void EditText(string title, string value, int max, bool multiline)
+        {
+#if UNITY_WEBGL && !UNITY_EDITOR
+            Onsite_EditText(title ?? "", value ?? "", max, multiline);
+#endif
+        }
+        public void OnTextEdited(string text) => TextEdited?.Invoke(text);
+
         public void TakePhoto()
         {
             if (!isActiveAndEnabled) return;
@@ -72,6 +148,7 @@ namespace Onsite.Net
 
         private void OnDisable()
         {
+            if (active == this) active = null;
             StopLocation();
 #if UNITY_WEBGL && !UNITY_EDITOR
             Onsite_CancelPhoto();

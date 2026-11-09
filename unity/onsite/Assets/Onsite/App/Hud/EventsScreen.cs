@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Onsite.App.Ui;
@@ -17,6 +17,7 @@ namespace Onsite.App.Hud
         private string selectedId;
         private bool creating;
         private bool busy;
+        private int periodDays;
         private TextField title;
         private TextField description;
         private VisualElement ordered;
@@ -26,6 +27,7 @@ namespace Onsite.App.Hud
         {
             this.app = app;
             AddToClassList("screen");
+            AddToClassList("events-screen");
             frame = new HudPanel("OPEN ORDER", "巡るイベント", app.ShowMap);
             Add(frame);
             scroll = new ScrollView(ScrollViewMode.Vertical);
@@ -44,6 +46,13 @@ namespace Onsite.App.Hud
             else { selectedId = null; DrawList(); }
         }
 
+        internal void ShowDetail(KokoEvent ev)
+        {
+            if (ev == null) return;
+            creating = false; selectedId = ev.id; Refresh();
+            scroll.scrollOffset = UnityEngine.Vector2.zero;
+        }
+
         private void DrawList()
         {
             scroll.Add(UiKit.Row(UiKit.Button("イベントを作る", BeginCreate, true),
@@ -59,7 +68,7 @@ namespace Onsite.App.Hud
                 var stops = ev.stops ?? Array.Empty<EventStop>();
                 var count = stops.Count(s => app.OpenedIds.Contains(s.id));
                 var card = new VisualElement();
-                card.AddToClassList("card");
+                card.AddToClassList("card"); card.AddToClassList("event-card");
                 var status = AppFormat.EventStatus(ev).ToLowerInvariant();
                 var badge = UiKit.Label(StatusLabel(status) + (app.JoinedIds.Contains(ev.id) ? " / JOINED" : ""), "section-label");
                 card.Add(badge);
@@ -69,7 +78,8 @@ namespace Onsite.App.Hud
                 var progress = new SegmentBar { Value = stops.Length > 0 ? (float)count / stops.Length : 0, Tint = MarkerField.Amber };
                 card.Add(progress);
                 card.Add(UiKit.Label(count + " / " + stops.Length + " OPENED", "mono"));
-                card.Add(UiKit.Button("巡る順を見る", () => { selectedId = ev.id; Refresh(); }));
+                card.Add(UiKit.Button("EXPLORE / 巡る順を見る", () => { selectedId = ev.id; Refresh(); }));
+                card.Add(UiKit.Rule());
                 scroll.Add(card);
             }
         }
@@ -82,7 +92,7 @@ namespace Onsite.App.Hud
             scroll.Add(UiKit.Button("← 一覧へ", () => { selectedId = null; Refresh(); }));
             scroll.Add(UiKit.Label(StatusLabel(status), "section-label"));
             scroll.Add(UiKit.Label(ev.title, "heading"));
-            scroll.Add(UiKit.Label(ev.authorName + " / " + AppFormat.Ago(ev.createdAt), "muted"));
+            scroll.Add(UiKit.Author(ev.authorName, AppFormat.Ago(ev.createdAt)));
             scroll.Add(UiKit.Label(Period(ev), "mono"));
             scroll.Add(UiKit.Label(ev.description ?? "", "body-copy"));
             scroll.Add(UiKit.Label(stops.Length + " STOPS / " + AppFormat.Distance(AppFormat.RouteLength(ev)) + " / " + ev.participantCount + " PEOPLE", "mono"));
@@ -98,6 +108,7 @@ namespace Onsite.App.Hud
             }, true);
             join.SetEnabled(!busy && (joined || status != "ended"));
             scroll.Add(UiKit.Row(UiKit.Button("ルートを表示", () => app.ShowRoute(ev)), join));
+            scroll.Add(UiKit.Rule());
             scroll.Add(UiKit.Label("OPEN ORDER / 巡る順", "section-label"));
             var table = new DataTable("NO", "NAME", "DIST", "RADIUS");
             for (var i = 0; i < stops.Length; i++)
@@ -129,6 +140,22 @@ namespace Onsite.App.Hud
             description = UiKit.Field("説明（任意）", 300, true);
             scroll.Add(title);
             scroll.Add(description);
+            // 開催期間：祭りやツアーなど「この期間だけ」の巡りを作れる
+            scroll.Add(UiKit.Label("PERIOD / 開催期間", "section-label"));
+            var periods = new VisualElement(); periods.AddToClassList("segmented");
+            periodDays = 0;
+            foreach (var (days, label) in new[] { (0, "いつでも"), (1, "今日"), (3, "3日間"), (7, "1週間") })
+            {
+                Button b = null;
+                b = UiKit.Button(label, () =>
+                {
+                    periodDays = days;
+                    foreach (var c in periods.Children()) c.EnableInClassList("selected", c == b);
+                });
+                b.EnableInClassList("selected", days == 0);
+                periods.Add(b);
+            }
+            scroll.Add(periods);
             ordered = new VisualElement();
             scroll.Add(ordered);
             submit = UiKit.Button("この順でイベントを作る", () =>
@@ -136,7 +163,9 @@ namespace Onsite.App.Hud
                 if (busy || string.IsNullOrWhiteSpace(title.value) || picked.Count < 2) return;
                 busy = true;
                 RefreshPicker();
-                app.CreateEvent(title.value.Trim(), description.value.Trim(), picked.ToArray(), success =>
+                DateTime? start = null, end = null;
+                if (periodDays > 0) { start = DateTime.Now; end = DateTime.Today.AddDays(periodDays).AddSeconds(-1); }
+                app.CreateEvent(title.value.Trim(), description.value.Trim(), picked.ToArray(), start, end, success =>
                 {
                     busy = false;
                     if (success) creating = false;
@@ -162,7 +191,7 @@ namespace Onsite.App.Hud
                 var id = picked[i];
                 var drop = app.Api?.Drops.FirstOrDefault(d => d.id == id);
                 var card = new VisualElement();
-                card.AddToClassList("card");
+                card.AddToClassList("card"); card.AddToClassList("event-card");
                 card.Add(UiKit.Label((i + 1).ToString("00") + " / " + (drop?.teaser ?? "一覧にない投稿"), "body-copy"));
                 var up = UiKit.Button("↑", () => Move(index, -1));
                 var down = UiKit.Button("↓", () => Move(index, 1));

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Onsite.Map;
 using Onsite.App.Ui;
 using UnityEngine.UIElements;
@@ -16,6 +16,9 @@ namespace Onsite.App.Hud
             AddToClassList("picker");
             Rebuild();
         }
+
+        // 撮影の外見変更を選択表示にも反映する。
+        internal void Preview(AvatarLook value) { look = value; Rebuild(); }
 
         private void Rebuild()
         {
@@ -43,6 +46,7 @@ namespace Onsite.App.Hud
                     Rebuild();
                 });
                 button.AddToClassList("choice");
+                button.EnableInClassList("finish-choice", title.StartsWith("FINISH"));
                 button.EnableInClassList("on", i == selected);
                 row.Add(button);
             }
